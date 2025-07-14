@@ -1,59 +1,38 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Atemschutzgeräteträger App</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 20px;
-      background-color: #f4f4f4;
-    }
-    h1 {
-      text-align: center;
-    }
-    #trupp-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      justify-content: center;
-    }
-    .trupp-card, .trupp-form {
-      background: white;
-      padding: 12px;
-      border-radius: 8px;
-      box-shadow: 0 0 4px rgba(0,0,0,0.1);
-      width: 300px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .trupp-card p {
-      margin: 4px 0;
-    }
-    button {
-      margin-top: 6px;
-      display: block;
-      width: 100%;
-    }
-    input, select, textarea {
-      width: 100%;
-      margin-bottom: 6px;
-      padding: 6px;
-    }
-    .warnung {
-      color: red;
-      font-weight: bold;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atemschutz-App</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main>
-    <h1>Atemschutzgeräteträger App</h1>
-    <button id="neuer-trupp-btn">➕ Neuen Trupp hinzufügen</button>
-    <div id="trupp-container"></div>
-  </main>
+  <h1>Atemschutztrupp Verwaltung</h1>
+  <div id="trupp-container">
+    <!-- Dynamisch erstellte Trupps erscheinen hier -->
+  </div>
+  <button onclick="showTruppForm()">+ Neuer Trupp</button>
+
+  <!-- Formular zum Erstellen eines neuen Trupps -->
+  <div id="trupp-form-wrapper" style="display:none; padding: 1rem;">
+    <div class="trupp-form">
+      <h2>Neuen Trupp erstellen</h2>
+      <label>Truppname:</label>
+      <select id="trupp-name-select"></select>
+
+      <label>Truppführer Name:</label>
+      <input type="text" id="tf-name">
+      <label>Druck:</label>
+      <select id="tf-druck"></select>
+
+      <label>Truppmann Name:</label>
+      <input type="text" id="tm-name">
+      <label>Druck:</label>
+      <select id="tm-druck"></select>
+
+      <button onclick="createTrupp()">Trupp erstellen</button>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
