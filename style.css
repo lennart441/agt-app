@@ -1,4 +1,4 @@
-ody {
+body {
   font-family: sans-serif;
   background: #f4f4f4;
   margin: 0;
@@ -69,4 +69,136 @@ input, select {
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
+}
+
+#druck-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.overlay-content {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  position: relative;
+  max-width: 80vw;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #dc3545;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: white;
+}
+
+#druck-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
+  margin-top: 1rem;
+}
+
+.druck-btn {
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #f8f9fa;
+  cursor: pointer;
+  text-align: center;
+  color: black;
+}
+
+/* Farben basierend auf Druckwerten */
+.druck-btn[data-druck="5"],
+.druck-btn[data-druck="10"],
+.druck-btn[data-druck="15"],
+.druck-btn[data-druck="20"],
+.druck-btn[data-druck="25"],
+.druck-btn[data-druck="30"],
+.druck-btn[data-druck="35"],
+.druck-btn[data-druck="40"],
+.druck-btn[data-druck="45"],
+.druck-btn[data-druck="50"] {
+  background: #dc3545;
+  color: white;
+}
+
+.druck-btn[data-druck="55"],
+.druck-btn[data-druck="60"],
+.druck-btn[data-druck="65"],
+.druck-btn[data-druck="70"],
+.druck-btn[data-druck="75"],
+.druck-btn[data-druck="80"],
+.druck-btn[data-druck="85"],
+.druck-btn[data-druck="90"],
+.druck-btn[data-druck="95"],
+.druck-btn[data-druck="100"],
+.druck-btn[data-druck="105"],
+.druck-btn[data-druck="110"],
+.druck-btn[data-druck="115"],
+.druck-btn[data-druck="120"],
+.druck-btn[data-druck="125"],
+.druck-btn[data-druck="130"],
+.druck-btn[data-druck="135"],
+.druck-btn[data-druck="140"],
+.druck-btn[data-druck="145"],
+.druck-btn[data-druck="150"],
+.druck-btn[data-druck="155"],
+.druck-btn[data-druck="160"] {
+  background: #ffc107;
+  color: black;
+}
+
+.druck-btn[data-druck="165"],
+.druck-btn[data-druck="170"],
+.druck-btn[data-druck="175"],
+.druck-btn[data-druck="180"],
+.druck-btn[data-druck="185"],
+.druck-btn[data-druck="190"],
+.druck-btn[data-druck="195"],
+.druck-btn[data-druck="200"],
+.druck-btn[data-druck="205"],
+.druck-btn[data-druck="210"],
+.druck-btn[data-druck="215"],
+.druck-btn[data-druck="220"],
+.druck-btn[data-druck="225"],
+.druck-btn[data-druck="230"],
+.druck-btn[data-druck="235"],
+.druck-btn[data-druck="240"],
+.druck-btn[data-druck="245"],
+.druck-btn[data-druck="250"],
+.druck-btn[data-druck="255"],
+.druck-btn[data-druck="260"],
+.druck-btn[data-druck="265"],
+.druck-btn[data-druck="270"],
+.druck-btn[data-druck="275"],
+.druck-btn[data-druck="280"],
+.druck-btn[data-druck="285"],
+.druck-btn[data-druck="290"],
+.druck-btn[data-druck="295"],
+.druck-btn[data-druck="300"],
+.druck-btn[data-druck="305"],
+.druck-btn[data-druck="310"],
+.druck-btn[data-druck="315"],
+.druck-btn[data-druck="320"] {
+  background: #28a745;
+  color: white;
 }
