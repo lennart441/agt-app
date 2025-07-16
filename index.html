@@ -7,32 +7,31 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Atemschutztrupp Verwaltung</h1>
+  <h1>Atemschutzüberwachung</h1>
   <div id="trupp-container">
     <!-- Dynamisch erstellte Trupps erscheinen hier -->
-  </div>
-  <button onclick="showTruppForm()">+ Neuer Trupp</button>
+    <!-- Formular zum Erstellen eines neuen Trupps -->
+    <div id="trupp-form-wrapper">
+      <div class="trupp-form">
+        <h2>Neuen Trupp erstellen</h2>
+        <label>Truppname:</label>
+        <select id="trupp-name-select"></select>
 
-  <!-- Formular zum Erstellen eines neuen Trupps -->
-  <div id="trupp-form-wrapper" style="display:none; padding: 1rem;">
-    <div class="trupp-form">
-      <h2>Neuen Trupp erstellen</h2>
-      <label>Truppname:</label>
-      <select id="trupp-name-select"></select>
+        <label>Truppführer Name:</label>
+        <input type="text" id="tf-name">
+        <label>Druck:</label>
+        <select id="tf-druck"></select>
 
-      <label>Truppführer Name:</label>
-      <input type="text" id="tf-name">
-      <label>Druck:</label>
-      <select id="tf-druck"></select>
+        <label>Truppmann Name:</label>
+        <input type="text" id="tm-name">
+        <label>Druck:</label>
+        <select id="tm-druck"></select>
 
-      <label>Truppmann Name:</label>
-      <input type="text" id="tm-name">
-      <label>Druck:</label>
-      <select id="tm-druck"></select>
-
-      <button onclick="createTrupp()">Trupp erstellen</button>
+        <button onclick="createTrupp()">Trupp erstellen</button>
+      </div>
     </div>
   </div>
+  <button onclick="showTruppForm()">+ Neuer Trupp</button>
 
   <!-- Overlay für Druckauswahl -->
   <div id="druck-overlay" style="display:none;">

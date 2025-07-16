@@ -1,10 +1,36 @@
 // logic.js
 
 const druckWerte = Array.from({ length: 11 }, (_, i) => 270 + i * 5); // 270 bis 320 in 5er-Schritten
-const truppNameVorschlaege = ["Angriffstrupp", "Wassertrupp", "Sicherheitstrupp", "Schlauchtrupp"];
 
 const trupps = [];
 let truppIdCounter = 0;
+
+
+// Funktion zum Laden der Truppnamen
+let truppNameVorschlaege = [];
+
+async function ladeTruppnamen() {
+  try {
+    const response = await fetch('truppnamen.json');
+    if (!response.ok) {
+      throw new Error(`Fehler beim Laden der Truppnamen: ${response.status}`);
+    }
+    truppNameVorschlaege = await response.json();
+  } catch (error) {
+    console.error('Konnte Truppnamen nicht laden:', error);
+    truppNameVorschlaege = []; // Fallback: leeres Array
+  }
+}
+
+// Hier werden die Truppnamen geladen
+window.addEventListener('DOMContentLoaded', async () => {
+  await ladeTruppnamen();
+  // Jetzt kannst du mit truppNameVorschlaege weiterarbeiten
+  console.log('Geladene Truppnamen:', truppNameVorschlaege);
+});
+
+
+
 
 // Funktion zum Erstellen eines Trupps
 function createTrupp() {
@@ -41,7 +67,7 @@ function startTimer(trupp) {
     const vergangen = Math.floor((Date.now() - trupp.startZeit) / 1000);
     const min = Math.floor(vergangen / 60).toString().padStart(2, '0');
     const sec = (vergangen % 60).toString().padStart(2, '0');
-    timerDisplay.textContent = `Zeit seit Start: ${min}:${sec}`;
+    timerDisplay.textContent = `Zeit seit letzter Meldung: ${min}:${sec}`;
 
     if (vergangen > 600) {
       card.classList.remove("warnphase");

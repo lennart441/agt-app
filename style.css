@@ -11,9 +11,32 @@ h2 {
 
 #trupp-container {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 1rem;
   padding: 1rem;
+  overflow-x: auto;
+  /* Scrollleisten-Styling für Webkit-Browser */
+  scrollbar-width: thick; /* Für Firefox */
+  scrollbar-color: #007bff #e0e0e0;
+}
+
+#trupp-container::-webkit-scrollbar {
+  height: 16px; /* Breitere Scrollleiste für Touch-Geräte */
+}
+
+#trupp-container::-webkit-scrollbar-track {
+  background: #e0e0e0;
+  border-radius: 8px;
+}
+
+#trupp-container::-webkit-scrollbar-thumb {
+  background: #007bff;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+}
+
+#trupp-container::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
 }
 
 .trupp-card, .trupp-form {
@@ -23,8 +46,14 @@ h2 {
   border-radius: 8px;
   min-width: 250px;
   max-width: 300px;
-  flex: 1;
+  flex: 0 0 auto;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#trupp-form-wrapper {
+  display: none; /* Standardmäßig ausgeblendet */
+  flex: 0 0 auto;
+  padding: 1rem;
 }
 
 .trupp-card.warnphase {
