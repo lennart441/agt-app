@@ -46,6 +46,7 @@ function createTrupp() {
     tf: { name: tfName, druck: tfDruck },
     tm: { name: tmName, druck: tmDruck },
     meldungen: [],
+    hatWarnungErhalten: false,
     timer: null,
     startZeit: null,
     intervalRef: null
@@ -108,13 +109,16 @@ function meldung(id) {
   zeigeMeldungen(trupp);
   startTimer(trupp);
 
-  if (tfDruck <= 160 || tmDruck <= 160) {
+  //Warnung Druck
+  if (!trupp.hatWarnungErhalten && (tfDruck <= 160 || tmDruck <= 160)) {
     const warnung = document.createElement("div");
     warnung.className = "warnung";
     warnung.textContent = `⚠️ Warnung: Rückzug! Einer der Träger hat unter 50% Luft.`;
     document.getElementById(`trupp-${id}`).appendChild(warnung);
+    trupp.hatWarnungErhalten = true;
   }
 }
+
 
 // Funktion zum Ablegen
 function ablegen(trupp) {
