@@ -49,6 +49,7 @@ function createTrupp() {
     hatWarnungErhalten: false,
     timer: null,
     startZeit: null,
+    inaktiv: false,
     intervalRef: null
   };
   trupps.push(trupp);
@@ -113,7 +114,7 @@ function meldung(id) {
   if (!trupp.hatWarnungErhalten && (tfDruck <= 160 || tmDruck <= 160)) {
     const warnung = document.createElement("div");
     warnung.className = "warnung";
-    warnung.textContent = `⚠️ Warnung: Rückzug! Einer der Träger hat unter 50% Luft.`;
+    warnung.textContent = `⚠️ Warnung: Einer der Träger hat unter 50% Luft.`;
     document.getElementById(`trupp-${id}`).appendChild(warnung);
     trupp.hatWarnungErhalten = true;
   }
@@ -127,4 +128,19 @@ function ablegen(trupp) {
   trupp.meldungen.push({ kommentar: `${zeit}: Trupp hat abgelegt`, tf: trupp.tf.druck, tm: trupp.tm.druck });
   zeigeMeldungen(trupp);
   document.getElementById(`trupp-${trupp.id}`).classList.remove("warnphase", "alarmphase");
+}
+
+
+// Report Senden Funktion
+function sendreport() {
+  // Entferne nur inaktive Trupps
+  trupps
+    .filter(t => t.inaktiv)
+    .forEach(t => {
+      const card = document.getElementById(`trupp-${t.id}`);
+      if (card) card.remove();
+    });
+
+  // Optional: Zeige Bestätigung
+  alert("Bericht gesendet. Aufgelöste Trupps wurden entfernt.");
 }

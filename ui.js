@@ -114,10 +114,20 @@ function renderTrupp(trupp) {
   const loeschenBtn = document.createElement("button");
   loeschenBtn.textContent = "Trupp auflösen";
   loeschenBtn.onclick = () => {
-    document.getElementById(`trupp-${trupp.id}`).remove();
-    const index = trupps.findIndex(t => t.id === trupp.id);
-    if (index > -1) trupps.splice(index, 1);
-    clearInterval(trupp.intervalRef);
+    trupp.inaktiv = true;
+    if (trupp.intervalRef) clearInterval(trupp.intervalRef);
+    card.classList.remove("warnphase", "alarmphase", "aktiv");
+    card.classList.add("inaktiv");
+
+    // Hide interactive elements but keep meldungen visible
+    const meldungForm = document.getElementById(`meldung-form-${trupp.id}`);
+    const inputs = meldungForm.querySelectorAll("select, input, button");
+    inputs.forEach(input => input.style.display = "none");
+    startButton.style.display = "none";
+    ablegenBtn.style.display = "none";
+    loeschenBtn.style.display = "none";
+
+
   };
   card.appendChild(loeschenBtn);
 
@@ -126,6 +136,7 @@ function renderTrupp(trupp) {
   card.appendChild(timerDiv);
 
   const meldungForm = document.createElement("div");
+  meldungForm.id = `meldung-form-${trupp.id}`;
   meldungForm.innerHTML = `
     <h3>Meldung:</h3>
     <label>Druck TF:</label>
@@ -142,6 +153,7 @@ function renderTrupp(trupp) {
   container.appendChild(card);
   setupMeldungDropdown(`meldung-tf-${trupp.id}`);
   setupMeldungDropdown(`meldung-tm-${trupp.id}`);
+  card.classList.add(trupp.inaktiv ? "inaktiv" : "aktiv");
 }
 
 // Anzeigen der neuen Meldungen

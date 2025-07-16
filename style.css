@@ -155,6 +155,21 @@ input, select {
   color: black;
 }
 
+
+.trupp-card.inaktiv {
+  opacity: 0.5;
+  filter: grayscale(70%);
+  z-index: 0;
+  transition: all 0.3s ease;
+}
+
+.trupp-card.aktiv {
+  opacity: 1;
+  filter: none;
+  z-index: 1;
+}
+
+
 /* Farben basierend auf Druckwerten */
 .druck-btn[data-druck="5"],
 .druck-btn[data-druck="10"],
