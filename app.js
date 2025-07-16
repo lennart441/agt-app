@@ -1,11 +1,14 @@
 // app.js
 
+
+
 const druckWerte = Array.from({ length: 11 }, (_, i) => 270 + i * 5); // 270 bis 320 in 5er-Schritten
 const truppNameVorschlaege = ["Angriffstrupp", "Wassertrupp", "Sicherheitstrupp", "Schlauchtrupp"];
 
 const trupps = [];
 let truppIdCounter = 0;
 
+// Funktion zum zeigen eines neuen Trupp Formulares
 function showTruppForm() {
   const formWrapper = document.getElementById("trupp-form-wrapper");
   formWrapper.style.display = formWrapper.style.display === "none" ? "block" : "none";
@@ -14,6 +17,7 @@ function showTruppForm() {
   fülleTruppnamenDropdown();
 }
 
+// Funktion zum erstellen des Druck Dropdown Menüs 
 function fülleDruckDropdown(id) {
   const select = document.getElementById(id);
   select.innerHTML = "";
@@ -23,8 +27,10 @@ function fülleDruckDropdown(id) {
     option.textContent = `${wert} bar`;
     select.appendChild(option);
   });
+  select.value = 300;
 }
 
+// Funktion zum erstellen der Eingabefelder für die Namen der Truppleute
 function fülleTruppnamenDropdown() {
   const select = document.getElementById("trupp-name-select");
   select.innerHTML = "";
@@ -36,6 +42,10 @@ function fülleTruppnamenDropdown() {
   });
 }
 
+
+
+
+// Funktion zum erstellen eines Trupps
 function createTrupp() {
   const tfName = document.getElementById("tf-name").value;
   const tmName = document.getElementById("tm-name").value;
@@ -58,6 +68,8 @@ function createTrupp() {
   document.getElementById("trupp-form-wrapper").style.display = "none";
 }
 
+
+// Trupp wird nach dem erstellen angezeigt
 function renderTrupp(trupp) {
   const container = document.getElementById("trupp-container");
   const card = document.createElement("div");
@@ -75,12 +87,26 @@ function renderTrupp(trupp) {
 
   const startButton = document.createElement("button");
   startButton.textContent = "Trupp legt an";
-  startButton.onclick = () => startTimer(trupp);
+  startButton.onclick = () => {
+    startButton.style.display = "none";
+    startTimer(trupp);
+    ablegenBtn.style.display = "inline";
+
+    const startKommentar = `Angelegt um ${new Date().toLocaleTimeString()}`;
+    trupp.meldungen.push({ kommentar: startKommentar, tf: trupp.tf.druck, tm: trupp.tm.druck });
+    zeigeMeldungen(trupp);
+  };
   card.appendChild(startButton);
 
   const ablegenBtn = document.createElement("button");
   ablegenBtn.textContent = "Trupp legt ab";
-  ablegenBtn.onclick = () => ablegen(trupp);
+  ablegenBtn.style.display = "none";
+  ablegenBtn.onclick = () => {
+    startButton.style.display = "inline";
+    ablegen(trupp);
+    ablegenBtn.style.display = "none";
+
+  }
   card.appendChild(ablegenBtn);
 
   const loeschenBtn = document.createElement("button");
@@ -114,12 +140,10 @@ function renderTrupp(trupp) {
   container.appendChild(card);
   fülleDruckDropdown(`meldung-tf-${trupp.id}`);
   fülleDruckDropdown(`meldung-tm-${trupp.id}`);
-
-  const startKommentar = `Angelegt um ${new Date().toLocaleTimeString()}`;
-  trupp.meldungen.push({ kommentar: startKommentar, tf: trupp.tf.druck, tm: trupp.tm.druck });
-  zeigeMeldungen(trupp);
 }
 
+
+// Startet Timer
 function startTimer(trupp) {
   trupp.startZeit = Date.now();
   const card = document.getElementById(`trupp-${trupp.id}`);
@@ -145,6 +169,8 @@ function startTimer(trupp) {
   }, 1000);
 }
 
+
+// neuen Druck bzw Status melden
 function meldung(id) {
   const trupp = trupps.find(t => t.id === id);
   const tfDruck = parseInt(document.getElementById(`meldung-tf-${id}`).value);
@@ -152,10 +178,20 @@ function meldung(id) {
   const notiz = document.getElementById(`notiz-${id}`).value;
   const zeit = new Date().toLocaleTimeString();
 
+  const letzteMeldung = trupp.meldungen.length > 0
+    ? trupp.meldungen[trupp.meldungen.length - 1]
+    : { tf: trupp.tf.druck, tm: trupp.tm.druck };
+
+  if (tfDruck > letzteMeldung.tf || tmDruck > letzteMeldung.tm) {
+    alert("Druck darf nicht höher sein als bei der letzten Meldung oder beim Anlegen.");
+    return;
+  }
+
   trupp.tf.druck = tfDruck;
   trupp.tm.druck = tmDruck;
 
-  document.getElementById(`info-${id}`).innerHTML = `Truppführer: ${trupp.tf.name} (${trupp.tf.druck} bar)<br>Truppmann: ${trupp.tm.name} (${trupp.tm.druck} bar)`;
+  document.getElementById(`info-${id}`).innerHTML =
+    `Truppführer: ${trupp.tf.name} (${trupp.tf.druck} bar)<br>Truppmann: ${trupp.tm.name} (${trupp.tm.druck} bar)`;
 
   trupp.meldungen.push({ kommentar: `${zeit}: ${notiz}`, tf: tfDruck, tm: tmDruck });
   zeigeMeldungen(trupp);
@@ -169,6 +205,7 @@ function meldung(id) {
   }
 }
 
+// Anzeigen der neuen Meldungen
 function zeigeMeldungen(trupp) {
   const meldungDiv = document.getElementById(`meldungen-${trupp.id}`);
   meldungDiv.innerHTML = "";
@@ -179,6 +216,8 @@ function zeigeMeldungen(trupp) {
   });
 }
 
+
+// Funktion zum ablegen
 function ablegen(trupp) {
   if (trupp.intervalRef) clearInterval(trupp.intervalRef);
   const zeit = new Date().toLocaleTimeString();
