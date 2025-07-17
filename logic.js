@@ -18,9 +18,39 @@ async function ladeTruppnamen() {
   }
 }
 
+function saveTruppsToLocalStorage() {
+  localStorage.setItem('trupps', JSON.stringify(trupps.filter(t => t.inaktiv)));
+}
+
+function loadTruppsFromLocalStorage() {
+  const storedTrupps = localStorage.getItem('trupps');
+  if (storedTrupps) {
+    const parsedTrupps = JSON.parse(storedTrupps);
+    // Find the highest ID in stored troops to avoid conflicts
+    const maxStoredId = parsedTrupps.length > 0 
+      ? Math.max(...parsedTrupps.map(t => t.id || 0), 0)
+      : 0;
+    truppIdCounter = Math.max(truppIdCounter, maxStoredId + 1);
+    
+    parsedTrupps.forEach((trupp, index) => {
+      // Assign new unique ID if needed
+      if (!trupp.id || trupps.some(t => t.id === trupp.id)) {
+        trupp.id = truppIdCounter++;
+      }
+      trupp.inaktiv = true;
+      trupp.intervalRef = null;
+      trupp.startZeit = null;
+      trupps.push(trupp);
+      renderTrupp(trupp);
+      zeigeMeldungen(trupp); // Ensure meldungen are displayed for loaded troops
+    });
+  }
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
   await ladeTruppnamen();
   console.log('Geladene Truppnamen:', truppNameVorschlaege);
+  loadTruppsFromLocalStorage();
 });
 
 function createTrupp() {
@@ -77,7 +107,7 @@ function createTrupp() {
 function startTimer(trupp) {
   trupp.startZeit = Date.now();
   const card = document.getElementById(`trupp-${trupp.id}`);
-  const timerDisplay = document.getElementById(`timer-${trupp.id}`);
+  const timerDiv = document.getElementById(`timer-${trupp.id}`);
 
   if (trupp.intervalRef) clearInterval(trupp.intervalRef);
 
@@ -85,7 +115,7 @@ function startTimer(trupp) {
     const vergangen = Math.floor((Date.now() - trupp.startZeit) / 1000);
     const min = Math.floor(vergangen / 60).toString().padStart(2, '0');
     const sec = (vergangen % 60).toString().padStart(2, '0');
-    timerDisplay.textContent = `Zeit seit letzter Meldung: ${min}:${sec}`;
+    timerDiv.textContent = `Zeit seit letzter Meldung: ${min}:${sec}`;
 
     if (vergangen > 600) {
       card.classList.remove("warnphase");
@@ -148,6 +178,8 @@ function ablegen(trupp) {
   trupp.meldungen.push({ kommentar: `${zeit}: Trupp hat abgelegt`, members: trupp.members.map(m => ({ role: m.role, druck: m.druck })) });
   zeigeMeldungen(trupp);
   document.getElementById(`trupp-${trupp.id}`).classList.remove("warnphase", "alarmphase");
+  trupp.inaktiv = true;
+  saveTruppsToLocalStorage();
 }
 
 function sendreport() {
@@ -157,5 +189,7 @@ function sendreport() {
       const card = document.getElementById(`trupp-${t.id}`);
       if (card) card.remove();
     });
+  trupps.length = 0; // Clear the trupps array
+  localStorage.removeItem('trupps'); // Clear localStorage
   alert("Bericht gesendet. Aufgelöste Trupps wurden entfernt.");
 }

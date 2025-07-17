@@ -159,6 +159,17 @@ function renderTrupp(trupp) {
     setupMeldungDropdown(`meldung-${index}-${trupp.id}`);
   });
   card.classList.add(trupp.inaktiv ? "inaktiv" : "aktiv");
+
+  // Hide buttons and meldung form inputs for inactive troops
+  if (trupp.inaktiv) {
+    startButton.style.display = "none";
+    ablegenBtn.style.display = "none";
+    loeschenBtn.style.display = "none";
+    const meldungForm = document.getElementById(`meldung-form-${trupp.id}`);
+    const inputs = meldungForm.querySelectorAll("select, input, button");
+    inputs.forEach(input => input.style.display = "none");
+    zeigeMeldungen(trupp); // Ensure meldungen are displayed
+  }
 }
 
 function zeigeMeldungen(trupp) {
