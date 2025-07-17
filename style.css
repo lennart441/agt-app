@@ -5,7 +5,7 @@ body {
   padding: 0;
 }
 
-h2 {
+h1, h2, h3 {
   margin-top: 0;
 }
 
@@ -15,13 +15,12 @@ h2 {
   gap: 1rem;
   padding: 1rem;
   overflow-x: auto;
-  /* Scrollleisten-Styling für Webkit-Browser */
-  scrollbar-width: thick; /* Für Firefox */
+  scrollbar-width: thick;
   scrollbar-color: #007bff #e0e0e0;
 }
 
 #trupp-container::-webkit-scrollbar {
-  height: 16px; /* Breitere Scrollleiste für Touch-Geräte */
+  height: 16px;
 }
 
 #trupp-container::-webkit-scrollbar-track {
@@ -51,9 +50,13 @@ h2 {
 }
 
 #trupp-form-wrapper {
-  display: none; /* Standardmäßig ausgeblendet */
+  display: none;
   flex: 0 0 auto;
   padding: 1rem;
+}
+
+.trupp-member {
+  margin-bottom: 1rem;
 }
 
 .trupp-card.warnphase {
@@ -93,7 +96,7 @@ button:disabled {
 
 input, select {
   width: 100%;
-  margin: 0.25rem 0 1rem;
+  margin: 0.25rem 0 0.5rem;
   padding: 0.4rem;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -155,7 +158,6 @@ input, select {
   color: black;
 }
 
-
 .trupp-card.inaktiv {
   opacity: 0.5;
   filter: grayscale(70%);
@@ -169,15 +171,12 @@ input, select {
   z-index: 1;
 }
 
-
-/* Farben basierend auf Druckwerten */
 .druck-btn[data-druck="5"],
 .druck-btn[data-druck="10"],
 .druck-btn[data-druck="15"],
 .druck-btn[data-druck="20"],
 .druck-btn[data-druck="25"],
 .druck-btn[data-druck="30"],
-.druck-btn[data-druck="35"],
 .druck-btn[data-druck="40"],
 .druck-btn[data-druck="45"],
 .druck-btn[data-druck="50"] {

@@ -1,12 +1,8 @@
-// logic.js
-
 const druckWerte = Array.from({ length: 11 }, (_, i) => 270 + i * 5); // 270 bis 320 in 5er-Schritten
 
 const trupps = [];
 let truppIdCounter = 0;
 
-
-// Funktion zum Laden der Truppnamen
 let truppNameVorschlaege = [];
 
 async function ladeTruppnamen() {
@@ -18,33 +14,37 @@ async function ladeTruppnamen() {
     truppNameVorschlaege = await response.json();
   } catch (error) {
     console.error('Konnte Truppnamen nicht laden:', error);
-    truppNameVorschlaege = []; // Fallback: leeres Array
+    truppNameVorschlaege = [];
   }
 }
 
-// Hier werden die Truppnamen geladen
 window.addEventListener('DOMContentLoaded', async () => {
   await ladeTruppnamen();
-  // Jetzt kannst du mit truppNameVorschlaege weiterarbeiten
   console.log('Geladene Truppnamen:', truppNameVorschlaege);
 });
 
-
-
-
-// Funktion zum Erstellen eines Trupps
 function createTrupp() {
-  const tfName = document.getElementById("tf-name").value;
-  const tmName = document.getElementById("tm-name").value;
-  const tfDruck = parseInt(document.getElementById("tf-druck").value);
-  const tmDruck = parseInt(document.getElementById("tm-druck").value);
   const truppName = document.getElementById("trupp-name-select").value;
+  const memberDivs = document.querySelectorAll("#trupp-members .trupp-member");
+  const members = Array.from(memberDivs).map((div, index) => {
+    const nameInput = div.querySelector(`input[id$="-name"]`);
+    const druckSelect = div.querySelector(`select[id$="-druck"]`);
+    return {
+      name: nameInput.value,
+      druck: parseInt(druckSelect.value),
+      role: index === 0 ? "TF" : `TM${index}`
+    };
+  });
+
+  if (members.some(member => !member.name || isNaN(member.druck))) {
+    alert("Bitte alle Namen und Druckwerte angeben.");
+    return;
+  }
 
   const trupp = {
     id: truppIdCounter++,
     name: truppName,
-    tf: { name: tfName, druck: tfDruck },
-    tm: { name: tmName, druck: tmDruck },
+    members: members,
     meldungen: [],
     hatWarnungErhalten: false,
     timer: null,
@@ -55,9 +55,25 @@ function createTrupp() {
   trupps.push(trupp);
   renderTrupp(trupp);
   document.getElementById("trupp-form-wrapper").style.display = "none";
+  document.getElementById("trupp-members").innerHTML = `
+    <div class="trupp-member">
+      <label>Truppführer Name:</label>
+      <input type="text" id="tf-name">
+      <label>Druck:</label>
+      <select id="tf-druck"></select>
+    </div>
+    <div class="trupp-member">
+      <label>Truppmann 1 Name:</label>
+      <input type="text" id="tm1-name">
+      <label>Druck:</label>
+      <select id="tm1-druck"></select>
+    </div>
+  `;
+  fülleTruppnamenDropdown();
+  fülleDruckDropdown("tf-druck");
+  fülleDruckDropdown("tm1-druck");
 }
 
-// Startet Timer
 function startTimer(trupp) {
   trupp.startZeit = Date.now();
   const card = document.getElementById(`trupp-${trupp.id}`);
@@ -83,35 +99,41 @@ function startTimer(trupp) {
   }, 1000);
 }
 
-// Neuen Druck bzw. Status melden
 function meldung(id) {
   const trupp = trupps.find(t => t.id === id);
-  const tfDruck = parseInt(document.getElementById(`meldung-tf-${id}`).value);
-  const tmDruck = parseInt(document.getElementById(`meldung-tm-${id}`).value);
+  const memberDruckInputs = trupp.members.map((_, index) => ({
+    druck: parseInt(document.getElementById(`meldung-${index}-${id}`).value),
+    role: index === 0 ? "TF" : `TM${index}`
+  }));
   const notiz = document.getElementById(`notiz-${id}`).value;
   const zeit = new Date().toLocaleTimeString();
 
   const letzteMeldung = trupp.meldungen.length > 0
-    ? trupp.meldungen[trupp.meldungen.length - 1]
-    : { tf: trupp.tf.druck, tm: trupp.tm.druck };
+    ? trupp.meldungen[trupp.meldungen.length - 1].members
+    : trupp.members.map(m => ({ role: m.role, druck: m.druck }));
 
-  if (tfDruck > letzteMeldung.tf || tmDruck > letzteMeldung.tm) {
-    alert("Druck darf nicht höher sein als bei der letzten Meldung oder beim Anlegen.");
-    return;
+  for (let i = 0; i < memberDruckInputs.length; i++) {
+    const currentDruck = memberDruckInputs[i].druck;
+    const lastDruck = letzteMeldung.find(m => m.role === memberDruckInputs[i].role).druck;
+    if (isNaN(currentDruck) || currentDruck > lastDruck) {
+      alert("Druck darf nicht höher sein als bei der letzten Meldung oder beim Anlegen.");
+      return;
+    }
   }
 
-  trupp.tf.druck = tfDruck;
-  trupp.tm.druck = tmDruck;
+  trupp.members.forEach((member, index) => {
+    member.druck = memberDruckInputs[index].druck;
+  });
 
-  document.getElementById(`info-${id}`).innerHTML =
-    `Truppführer: ${trupp.tf.name} (${trupp.tf.druck} bar)<br>Truppmann: ${trupp.tm.name} (${trupp.tm.druck} bar)`;
+  document.getElementById(`info-${id}`).innerHTML = trupp.members
+    .map(m => `${m.role === "TF" ? "Truppführer" : `Truppmann ${m.role.slice(2)}`}: ${m.name} (${m.druck} bar)`)
+    .join("<br>");
 
-  trupp.meldungen.push({ kommentar: `${zeit}: ${notiz}`, tf: tfDruck, tm: tmDruck });
+  trupp.meldungen.push({ kommentar: `${zeit}: ${notiz}`, members: memberDruckInputs });
   zeigeMeldungen(trupp);
   startTimer(trupp);
 
-  //Warnung Druck
-  if (!trupp.hatWarnungErhalten && (tfDruck <= 160 || tmDruck <= 160)) {
+  if (!trupp.hatWarnungErhalten && trupp.members.some(m => m.druck <= 160)) {
     const warnung = document.createElement("div");
     warnung.className = "warnung";
     warnung.textContent = `⚠️ Warnung: Einer der Träger hat unter 50% Luft.`;
@@ -120,27 +142,20 @@ function meldung(id) {
   }
 }
 
-
-// Funktion zum Ablegen
 function ablegen(trupp) {
   if (trupp.intervalRef) clearInterval(trupp.intervalRef);
   const zeit = new Date().toLocaleTimeString();
-  trupp.meldungen.push({ kommentar: `${zeit}: Trupp hat abgelegt`, tf: trupp.tf.druck, tm: trupp.tm.druck });
+  trupp.meldungen.push({ kommentar: `${zeit}: Trupp hat abgelegt`, members: trupp.members.map(m => ({ role: m.role, druck: m.druck })) });
   zeigeMeldungen(trupp);
   document.getElementById(`trupp-${trupp.id}`).classList.remove("warnphase", "alarmphase");
 }
 
-
-// Report Senden Funktion
 function sendreport() {
-  // Entferne nur inaktive Trupps
   trupps
     .filter(t => t.inaktiv)
     .forEach(t => {
       const card = document.getElementById(`trupp-${t.id}`);
       if (card) card.remove();
     });
-
-  // Optional: Zeige Bestätigung
   alert("Bericht gesendet. Aufgelöste Trupps wurden entfernt.");
 }
