@@ -1,4 +1,4 @@
-async function sendreport() {
+async function uploadToNextcloud() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const now = new Date();
@@ -40,21 +40,26 @@ async function sendreport() {
   const pdfBlob = doc.output('blob');
   const filename = `Atemschutzbericht_${now.toISOString().replace(/[:.]/g, '-')}.pdf`;
 
-  // Create a temporary download link
+  // Sende die PDF an den Server-Endpunkt
   try {
-    const url = URL.createObjectURL(pdfBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    alert(`Bericht ${filename} wird heruntergeladen.`);
+    const formData = new FormData();
+    formData.append('report', pdfBlob, filename);
+
+    const response = await fetch('https://agt-report-backend.ff-stocksee.de/upload-report', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fehler beim Hochladen: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    alert(result.message);
     clearTrupps();
   } catch (error) {
-    console.error('Fehler beim Erstellen des Downloads:', error);
-    alert(`Fehler beim Herunterladen des Berichts: ${error.message}`);
+    console.error('Fehler beim Hochladen des Berichts:', error);
+    alert(`Fehler beim Hochladen des Berichts: ${error.message}`);
   }
 }
 

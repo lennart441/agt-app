@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atemschutzüberwachung</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <script src="lib/jspdf.umd.min.js"></script>
+  <script src="logic.js"></script>
+  <script src="ui.js"></script>
+  <script src="report.js"></script>
+</head>
+<body>
+  <h1>Atemschutzüberwachung</h1>
+  <div id="trupp-container"></div>
+  <div id="trupp-form-wrapper" class="trupp-form">
+    <h2>Neuen Trupp erstellen</h2>
+    <label>Truppname:</label>
+    <select id="trupp-name-select"></select>
+    <div id="trupp-members">
+      <div class="trupp-member">
+        <label>Truppführer Name:</label>
+        <input type="text" id="tf-name">
+        <label>Druck:</label>
+        <select id="tf-druck"></select>
+      </div>
+      <div class="trupp-member">
+        <label>Truppmann 1 Name:</label>
+        <input type="text" id="tm1-name">
+        <label>Druck:</label>
+        <select id="tm1-druck"></select>
+      </div>
+    </div>
+    <button onclick="addTruppMember()">Weiteres Truppmitglied hinzufügen</button>
+    <button onclick="createTrupp()">Trupp erstellen</button>
+  </div>
+  <button onclick="showTruppForm()">+ Neuer Trupp</button>
+  <button onclick="uploadToNextcloud()">Bericht senden</button>
+
+  <div id="druck-overlay" style="display: none;">
+    <div class="overlay-content">
+      <button id="close-overlay" class="close-btn">✖</button>
+      <h3>Druck auswählen (bar)</h3>
+      <div id="druck-grid"></div>
+    </div>
+  </div>
+</body>
+</html>
