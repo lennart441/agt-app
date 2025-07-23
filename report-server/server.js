@@ -10,22 +10,17 @@ const upload = multer({ dest: 'uploads/' });
 // CORS-Konfiguration
 const corsOptions = {
   origin: (origin, callback) => {
-    // Für lokale Tests vorübergehend alle Ursprünge erlauben
-    // In der Produktion durch spezifische Ursprünge ersetzen
-    callback(null, true);
-    /*
     const allowedOrigins = [
       'http://localhost:5500', // VS Code Five Server
       'http://127.0.0.1:5500', // Alternative lokale Adresse
-      'https://your-pwa-domain.com' // Ersetze durch Produktionsdomain
+      'https://agt.ff-stocksee.de' // Ersetze durch Produktionsdomain
     ];
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, origin || '*');
+      callback(null, true); // Erlaube Anfragen ohne Origin (z. B. Nicht-Browser-Clients) oder erlaubte Origins
     } else {
       console.error(`CORS blockiert: Ungültiger Origin ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
-    */
   },
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
@@ -56,7 +51,7 @@ const client = createClient(nextcloudConfig.webdavUrl, {
 });
 
 // API-Endpunkt zum Empfangen und Hochladen der PDF
-app.post('/upload-report', upload.single('report'), async (req, res) => {
+app.post('/v1/report/upload-report', upload.single('report'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Keine Datei hochgeladen' });

@@ -45,7 +45,7 @@ async function uploadToNextcloud() {
     const formData = new FormData();
     formData.append('report', pdfBlob, filename);
 
-    const response = await fetch('https://agt-report-backend.ff-stocksee.de/upload-report', {
+    const response = await fetch('https://agt.ff-stocksee.de/v1/report/upload-report', {
       method: 'POST',
       body: formData
     });
