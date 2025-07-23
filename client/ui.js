@@ -14,7 +14,7 @@ function addTruppMember() {
   newMemberDiv.className = "trupp-member";
   newMemberDiv.innerHTML = `
     <label>Truppmann ${memberCounter} Name:</label>
-    <input type="text" id="tm${memberCounter}-name">
+    <input type="text" id="tm${memberCounter}-name" onclick="showNameOverlay('tm${memberCounter}-name')">
     <label>Druck:</label>
     <select id="tm${memberCounter}-druck"></select>
   `;
@@ -75,8 +75,70 @@ function showDruckOverlay(selectId) {
   overlay.style.display = 'flex';
 }
 
+function showNameOverlay(inputId) {
+  const overlay = document.getElementById('name-overlay');
+  const grid = document.getElementById('name-grid');
+  grid.innerHTML = '';
+
+  // Add custom name input
+  const customInputDiv = document.createElement('div');
+  customInputDiv.className = 'custom-name';
+  customInputDiv.innerHTML = `
+    <label>Alternativer Name:</label>
+    <input type="text" id="custom-name-input">
+    <button onclick="selectCustomName('${inputId}')">Bestätigen</button>
+  `;
+  grid.appendChild(customInputDiv);
+
+  // Add predefined names
+  agtlerNamen.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'name-btn';
+    btn.textContent = name;
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(inputId);
+      input.value = name;
+      closeNameOverlay();
+    });
+    grid.appendChild(btn);
+  });
+
+  overlay.style.display = 'flex';
+}
+
+function selectCustomName(inputId) {
+  const customInput = document.getElementById('custom-name-input');
+  const input = document.getElementById(inputId);
+  if (customInput.value.trim()) {
+    input.value = customInput.value.trim();
+    closeNameOverlay();
+  } else {
+    alert("Bitte einen Namen eingeben.");
+  }
+}
+
+function showNotfallOverlay(truppId, isEndNotfall = false) {
+  const overlay = document.getElementById('notfall-overlay');
+  const content = document.getElementById('notfall-content');
+  content.innerHTML = `
+    <h3>${isEndNotfall ? 'AGT Notfall beenden' : 'AGT Notfall auslösen'}</h3>
+    <button onclick="confirmNotfall(${truppId}, ${isEndNotfall})">Bestätigen</button>
+  `;
+  overlay.style.display = 'flex';
+}
+
+function closeNotfallOverlay() {
+  const overlay = document.getElementById('notfall-overlay');
+  overlay.style.display = 'none';
+}
+
 function closeDruckOverlay() {
   const overlay = document.getElementById('druck-overlay');
+  overlay.style.display = 'none';
+}
+
+function closeNameOverlay() {
+  const overlay = document.getElementById('name-overlay');
   overlay.style.display = 'none';
 }
 
@@ -101,8 +163,10 @@ function renderTrupp(trupp) {
   startButton.textContent = "Trupp legt an";
   startButton.onclick = () => {
     startButton.style.display = "none";
-    startTimer(trupp);
     ablegenBtn.style.display = "inline";
+    notfallBtn.style.display = "inline";
+    loeschenBtn.style.display = "none"; // Hide "Trupp auflösen" when active
+    startTimer(trupp);
     const startKommentar = `Angelegt um ${new Date().toLocaleTimeString()}`;
     trupp.meldungen.push({ kommentar: startKommentar, members: trupp.members.map(m => ({ role: m.role, druck: m.druck })) });
     zeigeMeldungen(trupp);
@@ -114,13 +178,23 @@ function renderTrupp(trupp) {
   ablegenBtn.style.display = "none";
   ablegenBtn.onclick = () => {
     startButton.style.display = "inline";
-    ablegen(trupp);
     ablegenBtn.style.display = "none";
+    notfallBtn.style.display = "none";
+    loeschenBtn.style.display = "inline"; // Show "Trupp auflösen" when inactive
+    ablegen(trupp);
   };
   card.appendChild(ablegenBtn);
 
+  const notfallBtn = document.createElement("button");
+  notfallBtn.className = "notfall-btn";
+  notfallBtn.textContent = trupp.notfallAktiv ? "AGT Notfall beenden" : "AGT Notfall";
+  notfallBtn.style.display = trupp.inaktiv ? "none" : "inline";
+  notfallBtn.onclick = () => showNotfallOverlay(trupp.id, trupp.notfallAktiv);
+  card.appendChild(notfallBtn);
+
   const loeschenBtn = document.createElement("button");
   loeschenBtn.textContent = "Trupp auflösen";
+  loeschenBtn.style.display = trupp.inaktiv ? "inline" : "none"; // Only show when inactive
   loeschenBtn.onclick = () => {
     trupp.inaktiv = true;
     if (trupp.intervalRef) clearInterval(trupp.intervalRef);
@@ -131,7 +205,8 @@ function renderTrupp(trupp) {
     inputs.forEach(input => input.style.display = "none");
     startButton.style.display = "none";
     ablegenBtn.style.display = "none";
-    loeschenBtn.style.display = "none";
+    notfallBtn.style.display = "none";
+    loeschenBtn.style.display = "none"; // Hide after dissolving
   };
   card.appendChild(loeschenBtn);
 
@@ -160,15 +235,15 @@ function renderTrupp(trupp) {
   });
   card.classList.add(trupp.inaktiv ? "inaktiv" : "aktiv");
 
-  // Hide buttons and meldung form inputs for inactive troops
   if (trupp.inaktiv) {
     startButton.style.display = "none";
     ablegenBtn.style.display = "none";
-    loeschenBtn.style.display = "none";
+    notfallBtn.style.display = "none";
+    loeschenBtn.style.display = "inline"; // Show when inactive
     const meldungForm = document.getElementById(`meldung-form-${trupp.id}`);
     const inputs = meldungForm.querySelectorAll("select, input, button");
     inputs.forEach(input => input.style.display = "none");
-    zeigeMeldungen(trupp); // Ensure meldungen are displayed
+    zeigeMeldungen(trupp);
   }
 }
 
@@ -177,14 +252,24 @@ function zeigeMeldungen(trupp) {
   meldungDiv.innerHTML = "";
   trupp.meldungen.forEach(m => {
     const p = document.createElement("p");
-    p.textContent = `${m.kommentar} (${m.members.map(mem => `${mem.role}: ${mem.druck} bar`).join(", ")})`;
+    p.textContent = m.members
+      ? `${m.kommentar} (${m.members.map(mem => `${mem.role}: ${mem.druck} bar`).join(", ")})`
+      : m.kommentar;
     meldungDiv.appendChild(p);
   });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const closeBtn = document.getElementById('close-overlay');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', closeDruckOverlay);
+  const closeDruckBtn = document.getElementById('close-overlay');
+  if (closeDruckBtn) {
+    closeDruckBtn.addEventListener('click', closeDruckOverlay);
+  }
+  const closeNameBtn = document.getElementById('close-name-overlay');
+  if (closeNameBtn) {
+    closeNameBtn.addEventListener('click', closeNameOverlay);
+  }
+  const closeNotfallBtn = document.getElementById('close-notfall-overlay');
+  if (closeNotfallBtn) {
+    closeNotfallBtn.addEventListener('click', closeNotfallOverlay);
   }
 });

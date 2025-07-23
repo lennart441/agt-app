@@ -6,10 +6,6 @@
   <title>Atemschutzüberwachung</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
-  <script src="lib/jspdf.umd.min.js"></script>
-  <script src="logic.js"></script>
-  <script src="ui.js"></script>
-  <script src="report.js"></script>
 </head>
 <body>
   <h1>Atemschutzüberwachung</h1>
@@ -21,13 +17,13 @@
     <div id="trupp-members">
       <div class="trupp-member">
         <label>Truppführer Name:</label>
-        <input type="text" id="tf-name">
+        <input type="text" id="tf-name" onclick="showNameOverlay('tf-name')">
         <label>Druck:</label>
         <select id="tf-druck"></select>
       </div>
       <div class="trupp-member">
         <label>Truppmann 1 Name:</label>
-        <input type="text" id="tm1-name">
+        <input type="text" id="tm1-name" onclick="showNameOverlay('tm1-name')">
         <label>Druck:</label>
         <select id="tm1-druck"></select>
       </div>
@@ -37,7 +33,6 @@
   </div>
   <button onclick="showTruppForm()">+ Neuer Trupp</button>
   <button onclick="uploadToNextcloud()">Bericht senden</button>
-
   <div id="druck-overlay" style="display: none;">
     <div class="overlay-content">
       <button id="close-overlay" class="close-btn">✖</button>
@@ -45,5 +40,22 @@
       <div id="druck-grid"></div>
     </div>
   </div>
+  <div id="name-overlay" style="display: none;">
+    <div class="overlay-content">
+      <button id="close-name-overlay" class="close-btn">✖</button>
+      <h3>Name auswählen</h3>
+      <div id="name-grid"></div>
+    </div>
+  </div>
+  <div id="notfall-overlay" style="display: none;">
+    <div class="overlay-content">
+      <button id="close-notfall-overlay" class="close-btn">✖</button>
+      <div id="notfall-content"></div>
+    </div>
+  </div>
+  <script src="lib/jspdf.umd.min.js"></script>
+  <script src="logic.js"></script>
+  <script src="ui.js"></script>
+  <script src="report.js"></script>
 </body>
 </html>

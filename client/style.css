@@ -94,6 +94,10 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.notfall-btn {
+  background: #dc3545;
+}
+
 input, select {
   width: 100%;
   margin: 0.25rem 0 0.5rem;
@@ -103,13 +107,13 @@ input, select {
   box-sizing: border-box;
 }
 
-#druck-overlay {
+#druck-overlay, #name-overlay, #notfall-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -118,11 +122,13 @@ input, select {
 
 .overlay-content {
   background: white;
-  padding: 1rem;
+  padding: 1.5rem;
   border-radius: 8px;
   position: relative;
-  max-width: 80vw;
-  max-height: 80vh;
+  width: 90vw;
+  max-width: 90vw;
+  height: 90vh;
+  max-height: 90vh;
   overflow-y: auto;
 }
 
@@ -133,42 +139,50 @@ input, select {
   background: #dc3545;
   border: none;
   border-radius: 50%;
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 1.2rem;
   color: white;
 }
 
-#druck-grid {
+#druck-grid, #name-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 5px;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
   margin-top: 1rem;
 }
 
-.druck-btn {
-  padding: 0.5rem;
-  font-size: 0.9rem;
+.custom-name {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-name input {
+  margin-bottom: 0.5rem;
+}
+
+#notfall-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#notfall-content button {
+  margin-top: 1rem;
+}
+
+.druck-btn, .name-btn {
+  padding: 1rem;
+  font-size: 1.2rem;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 8px;
   background: #f8f9fa;
   cursor: pointer;
   text-align: center;
   color: black;
-}
-
-.trupp-card.inaktiv {
-  opacity: 0.5;
-  filter: grayscale(70%);
-  z-index: 0;
-  transition: all 0.3s ease;
-}
-
-.trupp-card.aktiv {
-  opacity: 1;
-  filter: none;
-  z-index: 1;
+  touch-action: manipulation;
 }
 
 .druck-btn[data-druck="5"],
@@ -244,4 +258,17 @@ input, select {
 .druck-btn[data-druck="320"] {
   background: #28a745;
   color: white;
+}
+
+.trupp-card.inaktiv {
+  opacity: 0.5;
+  filter: grayscale(70%);
+  z-index: 0;
+  transition: all 0.3s ease;
+}
+
+.trupp-card.aktiv {
+  opacity: 1;
+  filter: none;
+  z-index: 1;
 }

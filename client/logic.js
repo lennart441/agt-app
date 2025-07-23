@@ -4,6 +4,7 @@ const trupps = [];
 let truppIdCounter = 0;
 
 let truppNameVorschlaege = [];
+let agtlerNamen = [];
 
 async function ladeTruppnamen() {
   try {
@@ -15,6 +16,19 @@ async function ladeTruppnamen() {
   } catch (error) {
     console.error('Konnte Truppnamen nicht laden:', error);
     truppNameVorschlaege = [];
+  }
+}
+
+async function ladeAgtlerNamen() {
+  try {
+    const response = await fetch('agtler.json');
+    if (!response.ok) {
+      throw new Error(`Fehler beim Laden der Agtler-Namen: ${response.status}`);
+    }
+    agtlerNamen = await response.json();
+  } catch (error) {
+    console.error('Konnte Agtler-Namen nicht laden:', error);
+    agtlerNamen = [];
   }
 }
 
@@ -38,6 +52,7 @@ function loadTruppsFromLocalStorage() {
       trupp.inaktiv = true;
       trupp.intervalRef = null;
       trupp.startZeit = null;
+      trupp.notfallAktiv = false; // Ensure notfallAktiv is initialized
       trupps.push(trupp);
       renderTrupp(trupp);
       zeigeMeldungen(trupp);
@@ -46,8 +61,9 @@ function loadTruppsFromLocalStorage() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  await ladeTruppnamen();
+  await Promise.all([ladeTruppnamen(), ladeAgtlerNamen()]);
   console.log('Geladene Truppnamen:', truppNameVorschlaege);
+  console.log('Geladene Agtler-Namen:', agtlerNamen);
   loadTruppsFromLocalStorage();
 });
 
@@ -78,7 +94,8 @@ function createTrupp() {
     timer: null,
     startZeit: null,
     inaktiv: false,
-    intervalRef: null
+    intervalRef: null,
+    notfallAktiv: false
   };
   trupps.push(trupp);
   renderTrupp(trupp);
@@ -86,13 +103,13 @@ function createTrupp() {
   document.getElementById("trupp-members").innerHTML = `
     <div class="trupp-member">
       <label>Truppführer Name:</label>
-      <input type="text" id="tf-name">
+      <input type="text" id="tf-name" onclick="showNameOverlay('tf-name')">
       <label>Druck:</label>
       <select id="tf-druck"></select>
     </div>
     <div class="trupp-member">
       <label>Truppmann 1 Name:</label>
-      <input type="text" id="tm1-name">
+      <input type="text" id="tm1-name" onclick="showNameOverlay('tm1-name')">
       <label>Druck:</label>
       <select id="tm1-druck"></select>
     </div>
@@ -159,7 +176,9 @@ function meldung(id) {
 
   trupp.meldungen.push({ kommentar: `${zeit}: ${notiz}`, members: memberDruckInputs });
   zeigeMeldungen(trupp);
-  startTimer(trupp);
+  if (!trupp.inaktiv && trupp.startZeit) {
+    startTimer(trupp);
+  }
 
   if (!trupp.hatWarnungErhalten && trupp.members.some(m => m.druck <= 160)) {
     const warnung = document.createElement("div");
@@ -178,4 +197,16 @@ function ablegen(trupp) {
   document.getElementById(`trupp-${trupp.id}`).classList.remove("warnphase", "alarmphase");
   trupp.inaktiv = true;
   saveTruppsToLocalStorage();
+}
+
+function confirmNotfall(truppId, isEndNotfall) {
+  const trupp = trupps.find(t => t.id === truppId);
+  const zeit = new Date().toLocaleTimeString();
+  trupp.meldungen.push({ kommentar: `${zeit}: ${isEndNotfall ? 'AGT Notfall beendet' : 'AGT Notfall ausgelöst'}` });
+  trupp.notfallAktiv = !isEndNotfall;
+  zeigeMeldungen(trupp);
+  const card = document.getElementById(`trupp-${truppId}`);
+  const notfallBtn = card.querySelector('.notfall-btn');
+  notfallBtn.textContent = trupp.notfallAktiv ? "AGT Notfall beenden" : "AGT Notfall";
+  closeNotfallOverlay();
 }

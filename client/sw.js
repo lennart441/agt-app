@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atemschutz-cache-v4'; // Updated cache name to force refresh
+const CACHE_NAME = 'atemschutz-cache-v5'; // Updated cache name to include agtler.json
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
@@ -14,6 +14,7 @@ self.addEventListener("install", (e) => {
         "/report.js",
         "/manifest.json",
         "/truppnamen.json",
+        "/agtler.json",
         "/lib/jspdf.umd.min.js"
       ]).then(() => {
         console.log('Service Worker: Alle Dateien erfolgreich gecacht.');
@@ -22,7 +23,6 @@ self.addEventListener("install", (e) => {
       console.error('Service Worker: Fehler beim Cachen:', err);
     })
   );
-  // Force immediate activation
   self.skipWaiting();
 });
 

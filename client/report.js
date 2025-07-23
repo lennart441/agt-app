@@ -29,7 +29,10 @@ async function uploadToNextcloud() {
       yOffset += 7;
     });
     trupp.meldungen.forEach(meldung => {
-      doc.text(`${meldung.kommentar} (${meldung.members.map(m => `${m.role}: ${m.druck} bar`).join(", ")})`, 30, yOffset);
+      const meldungText = meldung.members
+        ? `${meldung.kommentar} (${meldung.members.map(m => `${m.role}: ${m.druck} bar`).join(", ")})`
+        : meldung.kommentar;
+      doc.text(meldungText, 30, yOffset);
       yOffset += 7;
     });
     if (index < inactiveTrupps.length - 1) {
@@ -40,7 +43,6 @@ async function uploadToNextcloud() {
   const pdfBlob = doc.output('blob');
   const filename = `Atemschutzbericht_${now.toISOString().replace(/[:.]/g, '-')}.pdf`;
 
-  // Sende die PDF an den Server-Endpunkt
   try {
     const formData = new FormData();
     formData.append('report', pdfBlob, filename);
