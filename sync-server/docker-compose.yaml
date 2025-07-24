@@ -1,0 +1,12 @@
+services:
+  atemschutz-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./tokens.json:/app/tokens.json
+    environment:
+      - NODE_ENV=production
+    container_name: atemschutz-api

@@ -1,11 +1,14 @@
 let memberCounter = 2;
+let selectedMission = '';
 
 function showTruppForm() {
   const formWrapper = document.getElementById("trupp-form-wrapper");
-  formWrapper.style.display = formWrapper.style.display === "none" ? "block" : "none";
+  formWrapper.style.display = formWrapper.style.display === "none" ? "flex" : "none";
   fülleTruppnamenDropdown();
   fülleDruckDropdown("tf-druck");
   fülleDruckDropdown("tm1-druck");
+  document.getElementById("trupp-mission-display").value = '';
+  selectedMission = '';
 }
 
 function addTruppMember() {
@@ -117,6 +120,61 @@ function selectCustomName(inputId) {
   }
 }
 
+function showMissionOverlay(context, truppId = null) {
+  const overlay = document.getElementById('mission-overlay');
+  const grid = document.getElementById('mission-grid');
+  grid.innerHTML = '';
+
+  // Add custom mission input
+  const customInputDiv = document.createElement('div');
+  customInputDiv.className = 'custom-mission';
+  customInputDiv.innerHTML = `
+    <label>Alternativer Auftrag:</label>
+    <input type="text" id="custom-mission-input">
+    <button onclick="selectCustomMission('${context}', ${truppId})">Bestätigen</button>
+  `;
+  grid.appendChild(customInputDiv);
+
+  // Add predefined missions
+  auftragVorschlaege.forEach(auftrag => {
+    const btn = document.createElement('button');
+    btn.className = 'mission-btn';
+    btn.textContent = auftrag;
+    btn.addEventListener('click', () => {
+      if (context === 'create') {
+        selectedMission = auftrag;
+        document.getElementById('trupp-mission-display').value = auftrag;
+      } else {
+        updateMission(truppId, auftrag);
+      }
+      closeMissionOverlay();
+    });
+    grid.appendChild(btn);
+  });
+
+  overlay.style.display = 'flex';
+}
+
+function selectCustomMission(context, truppId) {
+  const customInput = document.getElementById('custom-mission-input');
+  if (customInput.value.trim()) {
+    if (context === 'create') {
+      selectedMission = customInput.value.trim();
+      document.getElementById('trupp-mission-display').value = customInput.value.trim();
+    } else {
+      updateMission(truppId, customInput.value.trim());
+    }
+    closeMissionOverlay();
+  } else {
+    alert("Bitte einen Auftrag eingeben.");
+  }
+}
+
+function closeMissionOverlay() {
+  const overlay = document.getElementById('mission-overlay');
+  overlay.style.display = 'none';
+}
+
 function showNotfallOverlay(truppId, isEndNotfall = false) {
   const overlay = document.getElementById('notfall-overlay');
   const content = document.getElementById('notfall-content');
@@ -151,6 +209,18 @@ function renderTrupp(trupp) {
   const title = document.createElement("h2");
   title.textContent = trupp.name;
   card.appendChild(title);
+
+  const missionDisplay = document.createElement("div");
+  missionDisplay.id = `mission-${trupp.id}`;
+  missionDisplay.innerHTML = `
+    <strong>Auftrag: ${trupp.mission || 'Kein Auftrag'}</strong>${trupp.previousMission ? `, davor ${trupp.previousMission}` : ''}
+  `;
+  card.appendChild(missionDisplay);
+
+  const changeMissionBtn = document.createElement("button");
+  changeMissionBtn.textContent = "Auftrag ändern";
+  changeMissionBtn.onclick = () => showMissionOverlay('update', trupp.id);
+  card.appendChild(changeMissionBtn);
 
   const agtInfo = document.createElement("p");
   agtInfo.id = `info-${trupp.id}`;
@@ -250,7 +320,8 @@ function renderTrupp(trupp) {
 function zeigeMeldungen(trupp) {
   const meldungDiv = document.getElementById(`meldungen-${trupp.id}`);
   meldungDiv.innerHTML = "";
-  trupp.meldungen.forEach(m => {
+  // Reverse meldungen to show newest first
+  [...trupp.meldungen].reverse().forEach(m => {
     const p = document.createElement("p");
     p.textContent = m.members
       ? `${m.kommentar} (${m.members.map(mem => `${mem.role}: ${mem.druck} bar`).join(", ")})`
@@ -271,5 +342,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeNotfallBtn = document.getElementById('close-notfall-overlay');
   if (closeNotfallBtn) {
     closeNotfallBtn.addEventListener('click', closeNotfallOverlay);
+  }
+  const closeMissionBtn = document.getElementById('close-mission-overlay');
+  if (closeMissionBtn) {
+    closeMissionBtn.addEventListener('click', closeMissionOverlay);
   }
 });

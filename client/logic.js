@@ -5,6 +5,12 @@ let truppIdCounter = 0;
 
 let truppNameVorschlaege = [];
 let agtlerNamen = [];
+let auftragVorschlaege = [];
+
+//const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
+const SYNC_API_URL = 'http://localhost:3000/v1/sync-api/trupps';
+
+const OPERATION_TOKEN = 'abc123def456ghi7';
 
 async function ladeTruppnamen() {
   try {
@@ -32,6 +38,41 @@ async function ladeAgtlerNamen() {
   }
 }
 
+async function ladeAuftragVorschlaege() {
+  try {
+    const response = await fetch('auftrag.json');
+    if (!response.ok) {
+      throw new Error(`Fehler beim Laden der Aufträge: ${response.status}`);
+    }
+    auftragVorschlaege = await response.json();
+  } catch (error) {
+    console.error('Konnte Aufträge nicht laden:', error);
+    auftragVorschlaege = [];
+  }
+}
+
+async function syncTruppsToServer() {
+  try {
+    const response = await fetch(SYNC_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Operation-Token': OPERATION_TOKEN
+      },
+      body: JSON.stringify({
+        trupps: trupps,
+        timestamp: Date.now()
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Sync failed: ${response.status}`);
+    }
+    console.log('Trupps successfully synced to server');
+  } catch (error) {
+    console.error('Error syncing trupps:', error);
+  }
+}
+
 function saveTruppsToLocalStorage() {
   localStorage.setItem('trupps', JSON.stringify(trupps.filter(t => t.inaktiv)));
 }
@@ -52,7 +93,9 @@ function loadTruppsFromLocalStorage() {
       trupp.inaktiv = true;
       trupp.intervalRef = null;
       trupp.startZeit = null;
-      trupp.notfallAktiv = false; // Ensure notfallAktiv is initialized
+      trupp.notfallAktiv = false;
+      trupp.mission = trupp.mission || '';
+      trupp.previousMission = trupp.previousMission || '';
       trupps.push(trupp);
       renderTrupp(trupp);
       zeigeMeldungen(trupp);
@@ -61,33 +104,52 @@ function loadTruppsFromLocalStorage() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  await Promise.all([ladeTruppnamen(), ladeAgtlerNamen()]);
+  await Promise.all([ladeTruppnamen(), ladeAgtlerNamen(), ladeAuftragVorschlaege()]);
   console.log('Geladene Truppnamen:', truppNameVorschlaege);
   console.log('Geladene Agtler-Namen:', agtlerNamen);
+  console.log('Geladene Aufträge:', auftragVorschlaege);
   loadTruppsFromLocalStorage();
+  
+  // Start automatic sync every 2 seconds
+  setInterval(syncTruppsToServer, 2000);
 });
 
 function createTrupp() {
-  const truppName = document.getElementById("trupp-name-select").value;
+  const truppNameSelect = document.getElementById("trupp-name-select");
+  const missionDisplay = document.getElementById("trupp-mission-display");
+  const truppName = truppNameSelect ? truppNameSelect.value : '';
+  const mission = missionDisplay ? missionDisplay.value : selectedMission;
   const memberDivs = document.querySelectorAll("#trupp-members .trupp-member");
   const members = Array.from(memberDivs).map((div, index) => {
     const nameInput = div.querySelector(`input[id$="-name"]`);
     const druckSelect = div.querySelector(`select[id$="-druck"]`);
     return {
-      name: nameInput.value,
-      druck: parseInt(druckSelect.value),
+      name: nameInput ? nameInput.value : '',
+      druck: druckSelect ? parseInt(druckSelect.value) : 300,
       role: index === 0 ? "TF" : `TM${index}`
     };
   });
+
+  if (!truppName) {
+    alert("Bitte einen Truppnamen auswählen.");
+    return;
+  }
 
   if (members.some(member => !member.name || isNaN(member.druck))) {
     alert("Bitte alle Namen und Druckwerte angeben.");
     return;
   }
 
+  if (!mission) {
+    alert("Bitte einen Auftrag angeben.");
+    return;
+  }
+
   const trupp = {
     id: truppIdCounter++,
     name: truppName,
+    mission: mission,
+    previousMission: '',
     members: members,
     meldungen: [],
     hatWarnungErhalten: false,
@@ -100,7 +162,9 @@ function createTrupp() {
   trupps.push(trupp);
   renderTrupp(trupp);
   document.getElementById("trupp-form-wrapper").style.display = "none";
-  document.getElementById("trupp-members").innerHTML = `
+  // Reset form
+  const truppForm = document.getElementById("trupp-members");
+  truppForm.innerHTML = `
     <div class="trupp-member">
       <label>Truppführer Name:</label>
       <input type="text" id="tf-name" onclick="showNameOverlay('tf-name')">
@@ -114,9 +178,14 @@ function createTrupp() {
       <select id="tm1-druck"></select>
     </div>
   `;
+  if (truppNameSelect) truppNameSelect.value = '';
+  if (missionDisplay) missionDisplay.value = '';
+  selectedMission = '';
+  memberCounter = 2; // Reset member counter
   fülleTruppnamenDropdown();
   fülleDruckDropdown("tf-druck");
   fülleDruckDropdown("tm1-druck");
+  syncTruppsToServer(); // Sync immediately after creation
 }
 
 function startTimer(trupp) {
@@ -187,16 +256,19 @@ function meldung(id) {
     document.getElementById(`trupp-${id}`).appendChild(warnung);
     trupp.hatWarnungErhalten = true;
   }
+  syncTruppsToServer(); // Sync after meldung
 }
 
 function ablegen(trupp) {
   if (trupp.intervalRef) clearInterval(trupp.intervalRef);
+  trupp.startZeit = null; // Reset startZeit to indicate trupp is not active
   const zeit = new Date().toLocaleTimeString();
   trupp.meldungen.push({ kommentar: `${zeit}: Trupp hat abgelegt`, members: trupp.members.map(m => ({ role: m.role, druck: m.druck })) });
   zeigeMeldungen(trupp);
   document.getElementById(`trupp-${trupp.id}`).classList.remove("warnphase", "alarmphase");
-  trupp.inaktiv = true;
+  trupp.inaktiv = false; // Ensure trupp remains active after ablegen
   saveTruppsToLocalStorage();
+  syncTruppsToServer(); // Sync after ablegen
 }
 
 function confirmNotfall(truppId, isEndNotfall) {
@@ -209,4 +281,24 @@ function confirmNotfall(truppId, isEndNotfall) {
   const notfallBtn = card.querySelector('.notfall-btn');
   notfallBtn.textContent = trupp.notfallAktiv ? "AGT Notfall beenden" : "AGT Notfall";
   closeNotfallOverlay();
+  syncTruppsToServer(); // Sync after notfall
+}
+
+function updateMission(truppId, newMission) {
+  const trupp = trupps.find(t => t.id === truppId);
+  if (newMission && newMission !== trupp.mission) {
+    const zeit = new Date().toLocaleTimeString();
+    const oldMission = trupp.mission || 'Kein Auftrag';
+    trupp.meldungen.push({ 
+      kommentar: `${zeit}: Trupp hatte den Auftrag '${oldMission}' und hat jetzt den Auftrag '${newMission}'`
+    });
+    trupp.previousMission = trupp.mission;
+    trupp.mission = newMission;
+    zeigeMeldungen(trupp);
+    const missionDisplay = document.getElementById(`mission-${trupp.id}`);
+    missionDisplay.innerHTML = `
+      <strong>Auftrag: ${trupp.mission}</strong>${trupp.previousMission ? `, davor ${trupp.previousMission}` : ''}
+    `;
+    syncTruppsToServer(); // Sync after mission update
+  }
 }
