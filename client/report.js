@@ -22,8 +22,10 @@ async function uploadToNextcloud() {
     yOffset += 10;
     doc.setFontSize(14);
     doc.text(`Trupp: ${trupp.name}`, 20, yOffset);
-    yOffset += 10;
+    yOffset += 7;
     doc.setFontSize(12);
+    doc.text(`Auftrag: ${trupp.mission || 'Kein Auftrag'}`, 30, yOffset);
+    yOffset += 7;
     trupp.members.forEach(member => {
       doc.text(`${member.role === "TF" ? "Truppführer" : `Truppmann ${member.role.slice(2)}`}: ${member.name} (Initial: ${member.druck} bar)`, 30, yOffset);
       yOffset += 7;

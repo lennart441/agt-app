@@ -5,67 +5,82 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Atemschutzüberwachung</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
 </head>
 <body>
   <h1>Atemschutzüberwachung</h1>
-  <button onclick="showTruppForm()">Neuen Trupp anlegen</button>
-  <button onclick="uploadToNextcloud()">Bericht erstellen</button>
-  <div id="trupp-container">
-    <div id="trupp-form-wrapper" style="display: none;">
-      <div id="trupp-form">
-        <h2>Trupp anlegen</h2>
-        <label>Truppname:</label>
-        <select id="trupp-name-select"></select>
-        <label>Auftrag:</label>
-        <input type="text" id="trupp-mission-display" readonly onclick="showMissionOverlay('create')">
-        <div id="trupp-members">
-          <div class="trupp-member">
-            <label>Truppführer Name:</label>
-            <input type="text" id="tf-name" onclick="showNameOverlay('tf-name')">
-            <label>Druck:</label>
-            <select id="tf-druck"></select>
-          </div>
-          <div class="trupp-member">
-            <label>Truppmann 1 Name:</label>
-            <input type="text" id="tm1-name" onclick="showNameOverlay('tm1-name')">
-            <label>Druck:</label>
-            <select id="tm1-druck"></select>
-          </div>
+  <button onclick="showTruppForm()">Neuer Trupp</button>
+    <button onclick="uploadToNextcloud()">Bericht erstellen</button>
+  <div id="trupp-form-wrapper" style="display: none;">
+    <div class="trupp-form">
+      <h2>Trupp erstellen</h2>
+      <label>Truppname:</label>
+      <input type="text" id="trupp-name-input" onclick="showTruppNameOverlay()">
+      <label>Auftrag:</label>
+      <input type="text" id="trupp-mission-display" onclick="showMissionOverlay('create')">
+      <div id="trupp-members">
+        <div class="trupp-member">
+          <label>Truppführer Name:</label>
+          <input type="text" id="tf-name" onclick="showNameOverlay('tf-name')">
+          <label>Druck:</label>
+          <input type="text" id="tf-druck" onclick="showDruckOverlay('tf-druck')">
         </div>
-        <button onclick="addTruppMember()">Weiteren Truppmann hinzufügen</button>
-        <button onclick="createTrupp()">Trupp anlegen</button>
+        <div class="trupp-member">
+          <label>Truppmann 1 Name:</label>
+          <input type="text" id="tm1-name" onclick="showNameOverlay('tm1-name')">
+          <label>Druck:</label>
+          <input type="text" id="tm1-druck" onclick="showDruckOverlay('tm1-druck')">
+        </div>
       </div>
+      <button onclick="addTruppMember()">+ Truppmann</button>
+      <button onclick="createTrupp()">Trupp erstellen</button>
     </div>
   </div>
+  <div id="trupp-container"></div>
+
+  <!-- Druck Overlay -->
   <div id="druck-overlay" style="display: none;">
     <div id="druck-content">
-      <h3>Druck auswählen</h3>
+      <button class="close-btn" id="close-overlay">X</button>
+      <h2>Druck auswählen</h2>
       <div id="druck-grid"></div>
-      <button id="close-overlay" class="close-btn">Schließen</button>
     </div>
   </div>
+
+  <!-- Name Overlay -->
   <div id="name-overlay" style="display: none;">
     <div id="name-content">
-      <h3>Name auswählen</h3>
+      <button class="close-btn" id="close-name-overlay">X</button>
+      <h2>Name auswählen</h2>
       <div id="name-grid"></div>
-      <button id="close-name-overlay" class="close-btn">Schließen</button>
     </div>
   </div>
-  <div id="notfall-overlay" style="display: none;">
-    <div id="notfall-content"></div>
-    <button id="close-notfall-overlay" class="close-btn">Schließen</button>
-  </div>
+
+  <!-- Mission Overlay -->
   <div id="mission-overlay" style="display: none;">
     <div id="mission-content">
-      <h3>Auftrag auswählen</h3>
+      <button class="close-btn" id="close-mission-overlay">X</button>
+      <h2>Auftrag auswählen</h2>
       <div id="mission-grid"></div>
-      <button id="close-mission-overlay" class="close-btn">Schließen</button>
     </div>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Truppname Overlay -->
+  <div id="truppname-overlay" style="display: none;">
+    <div id="truppname-content">
+      <button class="close-btn" id="close-truppname-overlay">X</button>
+      <h2>Truppname auswählen</h2>
+      <div id="truppname-grid"></div>
+    </div>
+  </div>
+
+  <!-- Notfall Overlay -->
+  <div id="notfall-overlay" style="display: none;">
+    <div id="notfall-content"></div>
+  </div>
+
   <script src="logic.js"></script>
-  <script src="ui.js"></script>
   <script src="report.js"></script>
+  <script src="ui.js"></script>
+  <script src="lib/jspdf.umd.min.js"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
-//const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
-const SYNC_API_URL = 'http://localhost:3000/v1/sync-api/trupps';
+const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
+//const SYNC_API_URL = 'http://localhost:3000/v1/sync-api/trupps';
 
 const OPERATION_TOKEN = 'abc123def456ghi7';
 let lastSyncTimestamp = null;
@@ -48,6 +48,17 @@ function renderTrupps(trupps) {
     card.className = `trupp-card ${trupp.inaktiv ? 'inaktiv' : 'aktiv'}`;
     card.id = `trupp-${trupp.id}`;
 
+    // Check for AGT emergency
+    if (trupp.notfallAktiv) {
+      card.classList.add('notfall');
+    }
+
+    // Check for low pressure (below 50 bar)
+    const minPressure = Math.min(...trupp.members.map(m => m.druck));
+    if (minPressure <= 50) {
+      card.classList.add('low-pressure');
+    }
+
     const title = document.createElement('h2');
     title.textContent = trupp.name;
     card.appendChild(title);
@@ -65,8 +76,22 @@ function renderTrupps(trupps) {
       .join('<br>');
     card.appendChild(agtInfo);
 
+    // Pressure bar for minimum pressure
+    const pressureBarContainer = document.createElement('div');
+    pressureBarContainer.className = 'pressure-bar-container';
+    const pressureBar = document.createElement('div');
+    pressureBar.className = 'pressure-bar';
+    pressureBar.classList.add(
+      minPressure <= 50 ? 'low' : minPressure <= 160 ? 'medium' : 'high'
+    );
+    const maxPressure = 320; // Maximum pressure for scaling
+    pressureBar.style.width = `${(minPressure / maxPressure) * 100}%`;
+    pressureBarContainer.appendChild(pressureBar);
+    card.appendChild(pressureBarContainer);
+
     const timerDiv = document.createElement('div');
     timerDiv.id = `timer-${trupp.id}`;
+    timerDiv.className = 'timer-bold';
     if (!trupp.inaktiv && trupp.startZeit) {
       const vergangen = Math.floor((Date.now() - trupp.startZeit) / 1000);
       const min = Math.floor(vergangen / 60).toString().padStart(2, '0');
@@ -76,6 +101,11 @@ function renderTrupps(trupps) {
       timerDiv.textContent = 'Trupp hat nicht angelegt';
     }
     card.appendChild(timerDiv);
+
+    // Separator for meldungen
+    const separator = document.createElement('div');
+    separator.className = 'meldung-separator';
+    card.appendChild(separator);
 
     const meldungDiv = document.createElement('div');
     meldungDiv.id = `meldungen-${trupp.id}`;

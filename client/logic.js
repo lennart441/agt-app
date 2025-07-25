@@ -7,8 +7,8 @@ let truppNameVorschlaege = [];
 let agtlerNamen = [];
 let auftragVorschlaege = [];
 
-//const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
-const SYNC_API_URL = 'http://localhost:3000/v1/sync-api/trupps';
+const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
+//const SYNC_API_URL = 'http://localhost:3000/v1/sync-api/trupps';
 
 const OPERATION_TOKEN = 'abc123def456ghi7';
 
@@ -74,32 +74,71 @@ async function syncTruppsToServer() {
 }
 
 function saveTruppsToLocalStorage() {
-  localStorage.setItem('trupps', JSON.stringify(trupps.filter(t => t.inaktiv)));
+  const serializableTrupps = trupps
+    .filter(t => t.inaktiv)
+    .map(t => ({
+      id: t.id,
+      name: t.name,
+      mission: t.mission,
+      previousMission: t.previousMission,
+      members: t.members.map(m => ({
+        name: m.name,
+        druck: m.druck,
+        role: m.role
+      })),
+      meldungen: t.meldungen.map(m => ({
+        kommentar: m.kommentar,
+        members: m.members ? m.members.map(mem => ({
+          role: mem.role,
+          druck: mem.druck
+        })) : undefined
+      })),
+      hatWarnungErhalten: t.hatWarnungErhalten,
+      inaktiv: t.inaktiv,
+      notfallAktiv: t.notfallAktiv
+    }));
+  localStorage.setItem('trupps', JSON.stringify(serializableTrupps));
 }
 
 function loadTruppsFromLocalStorage() {
   const storedTrupps = localStorage.getItem('trupps');
   if (storedTrupps) {
-    const parsedTrupps = JSON.parse(storedTrupps);
-    const maxStoredId = parsedTrupps.length > 0 
-      ? Math.max(...parsedTrupps.map(t => t.id || 0), 0)
-      : 0;
-    truppIdCounter = Math.max(truppIdCounter, maxStoredId + 1);
-    
-    parsedTrupps.forEach((trupp, index) => {
-      if (!trupp.id || trupps.some(t => t.id === trupp.id)) {
-        trupp.id = truppIdCounter++;
-      }
-      trupp.inaktiv = true;
-      trupp.intervalRef = null;
-      trupp.startZeit = null;
-      trupp.notfallAktiv = false;
-      trupp.mission = trupp.mission || '';
-      trupp.previousMission = trupp.previousMission || '';
-      trupps.push(trupp);
-      renderTrupp(trupp);
-      zeigeMeldungen(trupp);
-    });
+    try {
+      const parsedTrupps = JSON.parse(storedTrupps);
+      const maxStoredId = parsedTrupps.length > 0 
+        ? Math.max(...parsedTrupps.map(t => t.id || 0), 0)
+        : 0;
+      truppIdCounter = Math.max(truppIdCounter, maxStoredId + 1);
+      
+      parsedTrupps.forEach(trupp => {
+        if (!trupp.id || trupps.some(t => t.id === trupp.id)) {
+          trupp.id = truppIdCounter++;
+        }
+        trupp.inaktiv = true;
+        trupp.intervalRef = null;
+        trupp.startZeit = null;
+        trupp.timer = null;
+        trupp.notfallAktiv = trupp.notfallAktiv || false;
+        trupp.mission = trupp.mission || '';
+        trupp.previousMission = trupp.previousMission || '';
+        trupp.meldungen = trupp.meldungen || [];
+        trupp.hatWarnungErhalten = trupp.hatWarnungErhalten || false;
+        trupp.members = trupp.members || [];
+        trupp.meldungen = trupp.meldungen.map(m => ({
+          kommentar: m.kommentar || '',
+          members: m.members ? m.members.map(mem => ({
+            role: mem.role || '',
+            druck: mem.druck || 0
+          })) : undefined
+        }));
+        trupps.push(trupp);
+        renderTrupp(trupp);
+        zeigeMeldungen(trupp);
+      });
+    } catch (error) {
+      console.error('Fehler beim Laden der Trupps aus Local Storage:', error);
+      localStorage.removeItem('trupps'); // Clear corrupted data
+    }
   }
 }
 
@@ -115,17 +154,18 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 function createTrupp() {
-  const truppNameSelect = document.getElementById("trupp-name-select");
+  const truppNameInput = document.getElementById("trupp-name-input");
   const missionDisplay = document.getElementById("trupp-mission-display");
-  const truppName = truppNameSelect ? truppNameSelect.value : '';
-  const mission = missionDisplay ? missionDisplay.value : selectedMission;
+  const truppName = truppNameInput ? truppNameInput.value.trim() : '';
+  const mission = missionDisplay ? missionDisplay.value.trim() : selectedMission;
   const memberDivs = document.querySelectorAll("#trupp-members .trupp-member");
   const members = Array.from(memberDivs).map((div, index) => {
     const nameInput = div.querySelector(`input[id$="-name"]`);
-    const druckSelect = div.querySelector(`select[id$="-druck"]`);
+    const druckInput = div.querySelector(`input[id$="-druck"]`);
+    const druckValue = druckInput ? parseInt(druckInput.value.replace(' bar', '')) : 300;
     return {
-      name: nameInput ? nameInput.value : '',
-      druck: druckSelect ? parseInt(druckSelect.value) : 300,
+      name: nameInput ? nameInput.value.trim() : '',
+      druck: isNaN(druckValue) ? 300 : druckValue,
       role: index === 0 ? "TF" : `TM${index}`
     };
   });
@@ -169,22 +209,19 @@ function createTrupp() {
       <label>Truppführer Name:</label>
       <input type="text" id="tf-name" onclick="showNameOverlay('tf-name')">
       <label>Druck:</label>
-      <select id="tf-druck"></select>
+      <input type="text" id="tf-druck" onclick="showDruckOverlay('tf-druck')">
     </div>
     <div class="trupp-member">
       <label>Truppmann 1 Name:</label>
       <input type="text" id="tm1-name" onclick="showNameOverlay('tm1-name')">
       <label>Druck:</label>
-      <select id="tm1-druck"></select>
+      <input type="text" id="tm1-druck" onclick="showDruckOverlay('tm1-druck')">
     </div>
   `;
-  if (truppNameSelect) truppNameSelect.value = '';
+  if (truppNameInput) truppNameInput.value = '';
   if (missionDisplay) missionDisplay.value = '';
   selectedMission = '';
   memberCounter = 2; // Reset member counter
-  fülleTruppnamenDropdown();
-  fülleDruckDropdown("tf-druck");
-  fülleDruckDropdown("tm1-druck");
   syncTruppsToServer(); // Sync immediately after creation
 }
 
@@ -216,15 +253,17 @@ function startTimer(trupp) {
 function meldung(id) {
   const trupp = trupps.find(t => t.id === id);
   const memberDruckInputs = trupp.members.map((_, index) => ({
-    druck: parseInt(document.getElementById(`meldung-${index}-${id}`).value),
+    druck: parseInt(document.getElementById(`meldung-${index}-${id}`).value.replace(' bar', '')),
     role: index === 0 ? "TF" : `TM${index}`
   }));
   const notiz = document.getElementById(`notiz-${id}`).value;
   const zeit = new Date().toLocaleTimeString();
 
-  const letzteMeldung = trupp.meldungen.length > 0
-    ? trupp.meldungen[trupp.meldungen.length - 1].members
-    : trupp.members.map(m => ({ role: m.role, druck: m.druck }));
+  // Find the last meldung with members, or fall back to initial members
+  let letzteMeldung = trupp.meldungen.slice().reverse().find(m => m.members)?.members;
+  if (!letzteMeldung) {
+    letzteMeldung = trupp.members.map(m => ({ role: m.role, druck: m.druck }));
+  }
 
   for (let i = 0; i < memberDruckInputs.length; i++) {
     const currentDruck = memberDruckInputs[i].druck;
@@ -256,6 +295,11 @@ function meldung(id) {
     document.getElementById(`trupp-${id}`).appendChild(warnung);
     trupp.hatWarnungErhalten = true;
   }
+
+  // Clear the notiz field after a successful meldung
+  document.getElementById(`notiz-${id}`).value = '';
+
+  updateTruppCard(trupp); // Update the trupp card to reflect new pressure values
   syncTruppsToServer(); // Sync after meldung
 }
 
@@ -266,7 +310,7 @@ function ablegen(trupp) {
   trupp.meldungen.push({ kommentar: `${zeit}: Trupp hat abgelegt`, members: trupp.members.map(m => ({ role: m.role, druck: m.druck })) });
   zeigeMeldungen(trupp);
   document.getElementById(`trupp-${trupp.id}`).classList.remove("warnphase", "alarmphase");
-  trupp.inaktiv = false; // Ensure trupp remains active after ablegen
+  // Do not set trupp.inaktiv = true; keep trupp active after ablegen
   saveTruppsToLocalStorage();
   syncTruppsToServer(); // Sync after ablegen
 }
@@ -281,6 +325,7 @@ function confirmNotfall(truppId, isEndNotfall) {
   const notfallBtn = card.querySelector('.notfall-btn');
   notfallBtn.textContent = trupp.notfallAktiv ? "AGT Notfall beenden" : "AGT Notfall";
   closeNotfallOverlay();
+  updateTruppCard(trupp); // Update card to reflect notfall status
   syncTruppsToServer(); // Sync after notfall
 }
 

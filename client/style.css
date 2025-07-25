@@ -54,7 +54,7 @@ h1, h2, h3 {
   flex: 0 0 auto;
   min-width: 250px;
   max-width: 300px;
-  order: -1; /* Ensures form appears as the first item (leftmost) in the flex container */
+  order: -1;
 }
 
 .trupp-member {
@@ -68,6 +68,16 @@ h1, h2, h3 {
 .trupp-card.alarmphase {
   border: 3px solid red;
   animation: blink 1s infinite;
+}
+
+.trupp-card.low-pressure {
+  background: #ffc107; /* Yellow background for low pressure */
+  color: black; /* Ensure text is readable */
+}
+
+.trupp-card.notfall {
+  background: #c00773; /* Red background for AGT emergency, takes precedence */
+  color: white; /* Ensure text is readable */
 }
 
 @keyframes blink {
@@ -109,7 +119,7 @@ input, select {
   box-sizing: border-box;
 }
 
-#druck-overlay, #name-overlay, #mission-overlay {
+#druck-overlay, #name-overlay, #mission-overlay, #truppname-overlay, #notfall-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -122,20 +132,7 @@ input, select {
   z-index: 1000;
 }
 
-#notfall-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-#druck-content, #name-content, #mission-content {
+#druck-content, #name-content, #mission-content, #truppname-content, #notfall-content {
   background: white;
   padding: 1.5rem;
   border-radius: 8px;
@@ -148,17 +145,12 @@ input, select {
 }
 
 #notfall-content {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  position: relative;
   width: 90vw;
   max-width: 500px;
   max-height: 90vh;
-  overflow-y: auto;
 }
 
-#druck-grid, #name-grid, #mission-grid {
+#druck-grid, #name-grid, #mission-grid, #truppname-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
@@ -322,4 +314,43 @@ input, select {
 
 #sync-info {
   margin: 10px 0;
+}
+
+/* Styles for pressure bar */
+.pressure-bar-container {
+  width: 100%;
+  background: #e0e0e0;
+  border-radius: 4px;
+  height: 20px;
+  margin: 0.5rem 0;
+}
+
+.pressure-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.pressure-bar.low {
+  background: #dc3545; /* Red for pressure <= 50 */
+}
+
+.pressure-bar.medium {
+  background: #ffc107; /* Yellow for pressure 51-160 */
+}
+
+.pressure-bar.high {
+  background: #28a745; /* Green for pressure > 160 */
+}
+
+/* Bold timer and separator */
+.timer-bold {
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
+.meldung-separator {
+  border-top: 1px solid #ccc;
+  margin: 0.5rem 0;
 }
