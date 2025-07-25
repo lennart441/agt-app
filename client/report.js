@@ -4,13 +4,31 @@ async function uploadToNextcloud() {
   const now = new Date();
   const timestamp = now.toLocaleString('de-DE');
   let yOffset = 20;
+  const maxWidth = 170; // Maximum text width (595pt page - 20pt left margin - 5pt right margin)
+  const lineHeight = 7; // Line height for text
+  const pageHeight = 842; // A4 page height in points
+  const bottomMargin = 20; // Bottom margin to avoid content at page edge
 
+  // Function to render wrapped text and update yOffset
+  function renderWrappedText(text, x, y, fontSize) {
+    doc.setFontSize(fontSize);
+    const lines = doc.splitTextToSize(text, maxWidth);
+    lines.forEach(line => {
+      if (yOffset + lineHeight > pageHeight - bottomMargin) {
+        doc.addPage();
+        yOffset = 20; // Reset yOffset for new page
+      }
+      doc.text(line, x, yOffset);
+      yOffset += lineHeight;
+    });
+  }
+
+  // Add header on the first page
   doc.setFontSize(16);
-  doc.text('Atemschutzüberwachung Bericht', 20, yOffset);
-  yOffset += 10;
+  renderWrappedText('Atemschutzüberwachung Bericht', 20, yOffset, 16);
   doc.setFontSize(12);
-  doc.text(`Erstellt am: ${timestamp}`, 20, yOffset);
-  yOffset += 10;
+  renderWrappedText(`Erstellt am: ${timestamp}`, 20, yOffset, 12);
+  yOffset += 10; // Extra spacing after header
 
   const inactiveTrupps = trupps.filter(t => t.inaktiv);
   if (inactiveTrupps.length === 0) {
@@ -19,27 +37,25 @@ async function uploadToNextcloud() {
   }
 
   inactiveTrupps.forEach((trupp, index) => {
-    yOffset += 10;
-    doc.setFontSize(14);
-    doc.text(`Trupp: ${trupp.name}`, 20, yOffset);
-    yOffset += 7;
-    doc.setFontSize(12);
-    doc.text(`Auftrag: ${trupp.mission || 'Kein Auftrag'}`, 30, yOffset);
-    yOffset += 7;
+    // Start a new page for each trupp except the first
+    if (index > 0) {
+      doc.addPage();
+      yOffset = 20; // Reset yOffset for the new page
+    }
+
+    // Add trupp content
+    renderWrappedText(`Trupp: ${trupp.name}`, 20, yOffset, 14);
+    renderWrappedText(`Auftrag: ${trupp.mission || 'Kein Auftrag'}`, 30, yOffset, 12);
     trupp.members.forEach(member => {
-      doc.text(`${member.role === "TF" ? "Truppführer" : `Truppmann ${member.role.slice(2)}`}: ${member.name} (Initial: ${member.druck} bar)`, 30, yOffset);
-      yOffset += 7;
+      const memberText = `${member.role === "TF" ? "Truppführer" : `Truppmann ${member.role.slice(2)}`}: ${member.name} (Initial: ${member.druck} bar)`;
+      renderWrappedText(memberText, 30, yOffset, 12);
     });
     trupp.meldungen.forEach(meldung => {
       const meldungText = meldung.members
         ? `${meldung.kommentar} (${meldung.members.map(m => `${m.role}: ${m.druck} bar`).join(", ")})`
         : meldung.kommentar;
-      doc.text(meldungText, 30, yOffset);
-      yOffset += 7;
+      renderWrappedText(meldungText, 30, yOffset, 12);
     });
-    if (index < inactiveTrupps.length - 1) {
-      yOffset += 5;
-    }
   });
 
   const pdfBlob = doc.output('blob');
