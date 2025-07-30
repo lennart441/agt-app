@@ -1,6 +1,9 @@
+// Zählt die Anzahl der Mitglieder im Trupp-Formular
 let memberCounter = 2;
+// Speichert den aktuell ausgewählten Auftrag
 let selectedMission = '';
 
+// Zeigt das Formular zum Erstellen eines neuen Trupps an oder versteckt es
 function showTruppForm() {
   const formWrapper = document.getElementById("trupp-form-wrapper");
   formWrapper.style.display = formWrapper.style.display === "none" ? "flex" : "none";
@@ -11,25 +14,28 @@ function showTruppForm() {
   selectedMission = '';
 }
 
+// Fügt ein weiteres Mitglied (Truppmann) zum Trupp-Formular hinzu
 function addTruppMember() {
   const membersDiv = document.getElementById("trupp-members");
   const newMemberDiv = document.createElement("div");
   newMemberDiv.className = "trupp-member";
   newMemberDiv.innerHTML = `
     <label>Truppmann ${memberCounter} Name:</label>
-    <input type="text" id="tm${memberCounter}-name" onclick="showNameOverlay('tm${memberCounter}-name')">
+    <input type="text" id="tm${memberCounter}-name" onclick="showNameOverlay('tm${memberCounter}-name')" readonly>
     <label>Druck:</label>
-    <input type="text" id="tm${memberCounter}-druck" onclick="showDruckOverlay('tm${memberCounter}-druck')">
+    <input type="text" id="tm${memberCounter}-druck" onclick="showDruckOverlay('tm${memberCounter}-druck')" readonly>
   `;
   membersDiv.appendChild(newMemberDiv);
   memberCounter++;
 }
 
+// Fügt einen Event-Listener für das Druck-Eingabefeld hinzu, um das Overlay zu öffnen
 function setupMeldungInput(id) {
   const input = document.getElementById(id);
   input.addEventListener('click', () => showDruckOverlay(id));
 }
 
+// Zeigt das Overlay zur Auswahl eines Druckwerts an
 function showDruckOverlay(inputId) {
   const overlay = document.getElementById('druck-overlay');
   const grid = document.getElementById('druck-grid');
@@ -52,6 +58,7 @@ function showDruckOverlay(inputId) {
   overlay.style.display = 'flex';
 }
 
+// Zeigt das Overlay zur Auswahl eines Namens an
 function showNameOverlay(inputId) {
   const overlay = document.getElementById('name-overlay');
   const grid = document.getElementById('name-grid');
@@ -83,6 +90,7 @@ function showNameOverlay(inputId) {
   overlay.style.display = 'flex';
 }
 
+// Übernimmt einen benutzerdefinierten Namen aus dem Overlay
 function selectCustomName(inputId) {
   const customInput = document.getElementById('custom-name-input');
   const input = document.getElementById(inputId);
@@ -94,6 +102,7 @@ function selectCustomName(inputId) {
   }
 }
 
+// Zeigt das Overlay zur Auswahl eines Truppnamens an
 function showTruppNameOverlay() {
   const overlay = document.getElementById('truppname-overlay');
   const grid = document.getElementById('truppname-grid');
@@ -125,6 +134,7 @@ function showTruppNameOverlay() {
   overlay.style.display = 'flex';
 }
 
+// Übernimmt einen benutzerdefinierten Truppnamen aus dem Overlay
 function selectCustomTruppName() {
   const customInput = document.getElementById('custom-truppname-input');
   const input = document.getElementById('trupp-name-input');
@@ -136,6 +146,7 @@ function selectCustomTruppName() {
   }
 }
 
+// Zeigt das Overlay zur Auswahl eines Auftrags an
 function showMissionOverlay(context, truppId = null) {
   const overlay = document.getElementById('mission-overlay');
   const grid = document.getElementById('mission-grid');
@@ -171,6 +182,7 @@ function showMissionOverlay(context, truppId = null) {
   overlay.style.display = 'flex';
 }
 
+// Übernimmt einen benutzerdefinierten Auftrag aus dem Overlay
 function selectCustomMission(context, truppId) {
   const customInput = document.getElementById('custom-mission-input');
   if (customInput.value.trim()) {
@@ -186,11 +198,13 @@ function selectCustomMission(context, truppId) {
   }
 }
 
+// Schließt das Overlay für den Auftrag
 function closeMissionOverlay() {
   const overlay = document.getElementById('mission-overlay');
   overlay.style.display = 'none';
 }
 
+// Zeigt das Overlay für einen Notfall an (auslösen oder beenden)
 function showNotfallOverlay(truppId, isEndNotfall = false) {
   const overlay = document.getElementById('notfall-overlay');
   const content = document.getElementById('notfall-content');
@@ -201,26 +215,31 @@ function showNotfallOverlay(truppId, isEndNotfall = false) {
   overlay.style.display = 'flex';
 }
 
+// Schließt das Notfall-Overlay
 function closeNotfallOverlay() {
   const overlay = document.getElementById('notfall-overlay');
   overlay.style.display = 'none';
 }
 
+// Schließt das Druck-Overlay
 function closeDruckOverlay() {
   const overlay = document.getElementById('druck-overlay');
   overlay.style.display = 'none';
 }
 
+// Schließt das Name-Overlay
 function closeNameOverlay() {
   const overlay = document.getElementById('name-overlay');
   overlay.style.display = 'none';
 }
 
+// Schließt das Truppname-Overlay
 function closeTruppNameOverlay() {
   const overlay = document.getElementById('truppname-overlay');
   overlay.style.display = 'none';
 }
 
+// Rendert eine Trupp-Karte im UI mit allen Buttons und Infos
 function renderTrupp(trupp) {
   const container = document.getElementById("trupp-container");
   const card = document.createElement("div");
@@ -363,6 +382,7 @@ function renderTrupp(trupp) {
   }
 }
 
+// Aktualisiert die Trupp-Karte (z.B. nach einer Meldung oder Notfall)
 function updateTruppCard(trupp) {
   const card = document.getElementById(`trupp-${trupp.id}`);
   if (!card) return;
@@ -399,6 +419,7 @@ function updateTruppCard(trupp) {
   }
 }
 
+// Zeigt alle Meldungen eines Trupps im UI an
 function zeigeMeldungen(trupp) {
   const meldungDiv = document.getElementById(`meldungen-${trupp.id}`);
   meldungDiv.innerHTML = "";
@@ -412,6 +433,8 @@ function zeigeMeldungen(trupp) {
   });
 }
 
+// Fügt Event-Listener für die Schließen-Buttons der Overlays hinzu
+// und initialisiert die UI nach dem Laden der Seite
 document.addEventListener('DOMContentLoaded', () => {
   const closeDruckBtn = document.getElementById('close-overlay');
   if (closeDruckBtn) {
@@ -434,3 +457,50 @@ document.addEventListener('DOMContentLoaded', () => {
     closeTruppNameBtn.addEventListener('click', closeTruppNameOverlay);
   }
 });
+
+// Zeigt das Overlay zur Token-Eingabe an
+function showTokenOverlay() {
+  let overlay = document.getElementById('token-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'token-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.bottom = '0';
+    overlay.style.right = '0';
+    overlay.style.background = 'rgba(0,0,0,0.8)';
+    overlay.style.color = '#fff';
+    overlay.style.padding = '20px';
+    overlay.style.zIndex = '10000';
+    overlay.innerHTML = `
+      <div style="margin-bottom:10px;">Operation-Token eingeben:</div>
+      <input id="token-input" type="text" value="${OPERATION_TOKEN}" style="width:200px;">
+      <button id="token-save-btn">Speichern</button>
+      <button id="token-cancel-btn">Abbrechen</button>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('token-save-btn').onclick = function() {
+      const newToken = document.getElementById('token-input').value.trim();
+      setTokenInUrl(newToken);
+      document.body.removeChild(overlay);
+    };
+    document.getElementById('token-cancel-btn').onclick = function() {
+      document.body.removeChild(overlay);
+    };
+  }
+}
+
+// Fügt den Button zum Token-Ändern unten rechts hinzu
+function addTokenButton() {
+  let btn = document.getElementById('token-btn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'token-btn';
+    btn.textContent = 'Token ändern';
+    btn.style.position = 'fixed';
+    btn.style.bottom = '10px';
+    btn.style.right = '10px';
+    btn.style.zIndex = '9999';
+    btn.onclick = showTokenOverlay;
+    document.body.appendChild(btn);
+  }
+}

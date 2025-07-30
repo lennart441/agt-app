@@ -1,5 +1,7 @@
+// Druckwerte von 270 bis 320 in 5er-Schritten für die Auswahl
 const druckWerte = Array.from({ length: 11 }, (_, i) => 270 + i * 5); // 270 bis 320 in 5er-Schritten
 
+// Globale Variablen für Trupps und Vorschlagslisten
 const trupps = [];
 let truppIdCounter = 0;
 
@@ -7,11 +9,28 @@ let truppNameVorschlaege = [];
 let agtlerNamen = [];
 let auftragVorschlaege = [];
 
-const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
-//const SYNC_API_URL = 'http://localhost:3000/v1/sync-api/trupps';
+// URL für die Synchronisation mit dem Server
+//const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
+const SYNC_API_URL = 'http://localhost:3001/v1/sync-api/trupps';
 
-const OPERATION_TOKEN = 'abc123def456ghi7';
+// Token für die Operation, wird aus der URL gelesen
+let OPERATION_TOKEN = getTokenFromUrl();
 
+// Liest den Token aus der URL (?token=...)
+function getTokenFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('token') || '';
+}
+
+// Setzt den Token in die URL und aktualisiert die globale Variable
+function setTokenInUrl(token) {
+  const params = new URLSearchParams(window.location.search);
+  params.set('token', token);
+  window.history.replaceState({}, '', `${window.location.pathname}?${params}`);
+  OPERATION_TOKEN = token;
+}
+
+// Lädt die Truppnamen-Vorschläge aus einer lokalen JSON-Datei
 async function ladeTruppnamen() {
   try {
     const response = await fetch('truppnamen.json');
@@ -25,6 +44,7 @@ async function ladeTruppnamen() {
   }
 }
 
+// Lädt die AGTler-Namen-Vorschläge aus einer lokalen JSON-Datei
 async function ladeAgtlerNamen() {
   try {
     const response = await fetch('agtler.json');
@@ -38,6 +58,7 @@ async function ladeAgtlerNamen() {
   }
 }
 
+// Lädt die Auftrags-Vorschläge aus einer lokalen JSON-Datei
 async function ladeAuftragVorschlaege() {
   try {
     const response = await fetch('auftrag.json');
@@ -51,6 +72,7 @@ async function ladeAuftragVorschlaege() {
   }
 }
 
+// Synchronisiert die aktuellen Truppdaten mit dem Server
 async function syncTruppsToServer() {
   try {
     const response = await fetch(SYNC_API_URL, {
@@ -73,6 +95,7 @@ async function syncTruppsToServer() {
   }
 }
 
+// Speichert inaktive Trupps im Local Storage des Browsers
 function saveTruppsToLocalStorage() {
   const serializableTrupps = trupps
     .filter(t => t.inaktiv)
@@ -100,6 +123,7 @@ function saveTruppsToLocalStorage() {
   localStorage.setItem('trupps', JSON.stringify(serializableTrupps));
 }
 
+// Lädt gespeicherte Trupps aus dem Local Storage und rendert sie
 function loadTruppsFromLocalStorage() {
   const storedTrupps = localStorage.getItem('trupps');
   if (storedTrupps) {
@@ -142,6 +166,7 @@ function loadTruppsFromLocalStorage() {
   }
 }
 
+// Initialisiert die Anwendung nach dem Laden der Seite
 window.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([ladeTruppnamen(), ladeAgtlerNamen(), ladeAuftragVorschlaege()]);
   console.log('Geladene Truppnamen:', truppNameVorschlaege);
@@ -151,8 +176,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   
   // Start automatic sync every 2 seconds
   setInterval(syncTruppsToServer, 2000);
+
+  addTokenButton();
 });
 
+// Erstellt einen neuen Trupp aus den Formulareingaben und rendert ihn
 function createTrupp() {
   const truppNameInput = document.getElementById("trupp-name-input");
   const missionDisplay = document.getElementById("trupp-mission-display");
@@ -225,6 +253,7 @@ function createTrupp() {
   syncTruppsToServer(); // Sync immediately after creation
 }
 
+// Startet den Timer für einen Trupp und aktualisiert die Anzeige
 function startTimer(trupp) {
   trupp.startZeit = Date.now();
   const card = document.getElementById(`trupp-${trupp.id}`);
@@ -250,12 +279,17 @@ function startTimer(trupp) {
   }, 1000);
 }
 
+// Verarbeitet eine neue Druckmeldung oder nur eine Notiz für einen Trupp
 function meldung(id) {
   const trupp = trupps.find(t => t.id === id);
-  const memberDruckInputs = trupp.members.map((_, index) => ({
-    druck: parseInt(document.getElementById(`meldung-${index}-${id}`).value.replace(' bar', '')),
-    role: index === 0 ? "TF" : `TM${index}`
-  }));
+  const memberDruckInputs = trupp.members.map((_, index) => {
+    const druckInput = document.getElementById(`meldung-${index}-${id}`);
+    const druckValue = druckInput ? druckInput.value.replace(' bar', '').trim() : '';
+    return {
+      druck: druckValue === '' ? null : parseInt(druckValue),
+      role: index === 0 ? "TF" : `TM${index}`
+    };
+  });
   const notiz = document.getElementById(`notiz-${id}`).value;
   const zeit = new Date().toLocaleTimeString();
 
@@ -265,44 +299,61 @@ function meldung(id) {
     letzteMeldung = trupp.members.map(m => ({ role: m.role, druck: m.druck }));
   }
 
-  for (let i = 0; i < memberDruckInputs.length; i++) {
-    const currentDruck = memberDruckInputs[i].druck;
-    const lastDruck = letzteMeldung.find(m => m.role === memberDruckInputs[i].role).druck;
-    if (isNaN(currentDruck) || currentDruck > lastDruck) {
-      alert("Druck darf nicht höher sein als bei der letzten Meldung oder beim Anlegen.");
-      return;
+  // Prüfen, ob alle Druckwerte angegeben wurden
+  const alleDruckeVorhanden = memberDruckInputs.every((input) => input.druck !== null && !isNaN(input.druck));
+
+  if (alleDruckeVorhanden) {
+    // Normale Druckmeldung: Prüfen, ob Werte gültig sind
+    for (let i = 0; i < memberDruckInputs.length; i++) {
+      const currentDruck = memberDruckInputs[i].druck;
+      const lastDruck = letzteMeldung.find(m => m.role === memberDruckInputs[i].role).druck;
+      if (isNaN(currentDruck) || currentDruck > lastDruck) {
+        alert("Druck darf nicht höher sein als bei der letzten Meldung oder beim Anlegen.");
+        return;
+      }
     }
+    // Druckwerte übernehmen
+    trupp.members.forEach((member, index) => {
+      member.druck = memberDruckInputs[index].druck;
+    });
+    document.getElementById(`info-${id}`).innerHTML = trupp.members
+      .map(m => `${m.role === "TF" ? "Truppführer" : `Truppmann ${m.role.slice(2)}`}: ${m.name} (${m.druck} bar)`)
+      .join("<br>");
+    trupp.meldungen.push({ kommentar: `${zeit}: ${notiz}`, members: memberDruckInputs });
+    zeigeMeldungen(trupp);
+    // Nach erfolgreicher Druckmeldung alle Druckfelder leeren
+    trupp.members.forEach((_, index) => {
+      const druckInput = document.getElementById(`meldung-${index}-${id}`);
+      if (druckInput) druckInput.value = '';
+    });
+    if (!trupp.inaktiv && trupp.startZeit) {
+      startTimer(trupp); // Timer wird zurückgesetzt
+    }
+    if (!trupp.hatWarnungErhalten && trupp.members.some(m => m.druck <= 160)) {
+      const warnung = document.createElement("div");
+      warnung.className = "warnung";
+      warnung.textContent = `⚠️ Warnung: Einer der Träger hat unter 50% Luft.`;
+      document.getElementById(`trupp-${id}`).appendChild(warnung);
+      trupp.hatWarnungErhalten = true;
+    }
+  } else if (notiz.trim() !== '') {
+    // Nur Notiz, keine neuen Druckwerte: Timer bleibt stehen
+    trupp.meldungen.push({ kommentar: `${zeit}: ${notiz}` });
+    zeigeMeldungen(trupp);
+    // Druckwerte und Anzeige bleiben unverändert
+  } else {
+    alert("Bitte entweder alle Druckwerte angeben oder eine Notiz eintragen.");
+    return;
   }
 
-  trupp.members.forEach((member, index) => {
-    member.druck = memberDruckInputs[index].druck;
-  });
-
-  document.getElementById(`info-${id}`).innerHTML = trupp.members
-    .map(m => `${m.role === "TF" ? "Truppführer" : `Truppmann ${m.role.slice(2)}`}: ${m.name} (${m.druck} bar)`)
-    .join("<br>");
-
-  trupp.meldungen.push({ kommentar: `${zeit}: ${notiz}`, members: memberDruckInputs });
-  zeigeMeldungen(trupp);
-  if (!trupp.inaktiv && trupp.startZeit) {
-    startTimer(trupp);
-  }
-
-  if (!trupp.hatWarnungErhalten && trupp.members.some(m => m.druck <= 160)) {
-    const warnung = document.createElement("div");
-    warnung.className = "warnung";
-    warnung.textContent = `⚠️ Warnung: Einer der Träger hat unter 50% Luft.`;
-    document.getElementById(`trupp-${id}`).appendChild(warnung);
-    trupp.hatWarnungErhalten = true;
-  }
-
-  // Clear the notiz field after a successful meldung
+  // Clear the notiz field after a erfolgreichen Meldung
   document.getElementById(`notiz-${id}`).value = '';
 
   updateTruppCard(trupp); // Update the trupp card to reflect new pressure values
   syncTruppsToServer(); // Sync after meldung
 }
 
+// Markiert einen Trupp als abgelegt und speichert dies
 function ablegen(trupp) {
   if (trupp.intervalRef) clearInterval(trupp.intervalRef);
   trupp.startZeit = null; // Reset startZeit to indicate trupp is not active
@@ -315,6 +366,7 @@ function ablegen(trupp) {
   syncTruppsToServer(); // Sync after ablegen
 }
 
+// Bestätigt oder beendet einen Notfall für einen Trupp
 function confirmNotfall(truppId, isEndNotfall) {
   const trupp = trupps.find(t => t.id === truppId);
   const zeit = new Date().toLocaleTimeString();
@@ -329,6 +381,7 @@ function confirmNotfall(truppId, isEndNotfall) {
   syncTruppsToServer(); // Sync after notfall
 }
 
+// Aktualisiert den Auftrag eines Trupps und speichert die Änderung
 function updateMission(truppId, newMission) {
   const trupp = trupps.find(t => t.id === truppId);
   if (newMission && newMission !== trupp.mission) {

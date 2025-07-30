@@ -27,9 +27,12 @@ async function loadTokens() {
   }
 }
 
-// Middleware to validate token
+// Middleware to validate token (Header für POST, Query für GET)
 function validateToken(req, res, next) {
-  const token = req.headers['x-operation-token'];
+  let token = req.headers['x-operation-token'];
+  if (req.method === 'GET') {
+    token = req.query.token;
+  }
   if (!token || !validTokens.includes(token)) {
     return res.status(401).json({ error: 'Invalid or missing token' });
   }
@@ -47,7 +50,6 @@ app.post('/v1/sync-api/trupps', validateToken, (req, res) => {
     return res.status(400).json({ error: 'Missing trupps or timestamp' });
   }
 
-  operations[req.operationToken] = operations[req.operationToken] || [];
   operations[req.operationToken] = { trupps, timestamp };
   console.log(`Received data for token ${req.operationToken} at ${new Date(timestamp).toISOString()}`);
   res.json({ status: 'success', timestamp });

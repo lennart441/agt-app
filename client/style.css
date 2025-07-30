@@ -54,6 +54,7 @@ h1, h2, h3 {
   flex: 0 0 auto;
   min-width: 250px;
   max-width: 300px;
+  margin: 16px;
   order: -1;
 }
 
@@ -200,6 +201,7 @@ input, select {
 .druck-btn[data-druck="20"],
 .druck-btn[data-druck="25"],
 .druck-btn[data-druck="30"],
+.druck-btn[data-druck="35"],
 .druck-btn[data-druck="40"],
 .druck-btn[data-druck="45"],
 .druck-btn[data-druck="50"] {

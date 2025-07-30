@@ -1,8 +1,66 @@
-const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
-//const SYNC_API_URL = 'http://localhost:3000/v1/sync-api/trupps';
+//const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
+const SYNC_API_URL = 'http://localhost:3001/v1/sync-api/trupps';
 
-const OPERATION_TOKEN = 'abc123def456ghi7';
+let OPERATION_TOKEN = getTokenFromUrl();
 let lastSyncTimestamp = null;
+
+function getTokenFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('token') || '';
+}
+
+function setTokenInUrl(token) {
+  const params = new URLSearchParams(window.location.search);
+  params.set('token', token);
+  window.history.replaceState({}, '', `${window.location.pathname}?${params}`);
+  OPERATION_TOKEN = token;
+}
+
+function showTokenOverlay() {
+  let overlay = document.getElementById('token-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'token-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.bottom = '0';
+    overlay.style.right = '0';
+    overlay.style.background = 'rgba(0,0,0,0.8)';
+    overlay.style.color = '#fff';
+    overlay.style.padding = '20px';
+    overlay.style.zIndex = '10000';
+    overlay.innerHTML = `
+      <div style="margin-bottom:10px;">Operation-Token eingeben:</div>
+      <input id="token-input" type="text" value="${OPERATION_TOKEN}" style="width:200px;">
+      <button id="token-save-btn">Speichern</button>
+      <button id="token-cancel-btn">Abbrechen</button>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('token-save-btn').onclick = function() {
+      const newToken = document.getElementById('token-input').value.trim();
+      setTokenInUrl(newToken);
+      document.body.removeChild(overlay);
+      fetchTrupps(); // Nach Token-Wechsel neu laden
+    };
+    document.getElementById('token-cancel-btn').onclick = function() {
+      document.body.removeChild(overlay);
+    };
+  }
+}
+
+function addTokenButton() {
+  let btn = document.getElementById('token-btn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'token-btn';
+    btn.textContent = 'Token ändern';
+    btn.style.position = 'fixed';
+    btn.style.bottom = '10px';
+    btn.style.right = '10px';
+    btn.style.zIndex = '9999';
+    btn.onclick = showTokenOverlay;
+    document.body.appendChild(btn);
+  }
+}
 
 function formatTimestamp(timestamp) {
   if (!timestamp) return '-';
@@ -23,11 +81,8 @@ function updateSyncTimer() {
 
 async function fetchTrupps() {
   try {
-    const response = await fetch(SYNC_API_URL, {
-      headers: {
-        'X-Operation-Token': OPERATION_TOKEN
-      }
-    });
+    const url = `${SYNC_API_URL}?token=${encodeURIComponent(OPERATION_TOKEN)}`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
     }
@@ -143,4 +198,5 @@ window.addEventListener('DOMContentLoaded', () => {
   fetchTrupps();
   setInterval(fetchTrupps, 2000); // Fetch every 2 seconds
   setInterval(updateSyncTimer, 1000); // Update timer every second
+  addTokenButton();
 });

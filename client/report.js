@@ -1,3 +1,4 @@
+// Erstellt und lädt ein PDF mit allen inaktiven Trupps und deren Meldungen und lädt es zu Nextcloud hoch
 async function uploadToNextcloud() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -83,6 +84,7 @@ async function uploadToNextcloud() {
   }
 }
 
+// Löscht alle inaktiven Trupps aus dem Speicher und entfernt sie aus dem UI
 function clearTrupps() {
   const inactiveTrupps = trupps.filter(t => t.inaktiv);
   inactiveTrupps.forEach(t => {
