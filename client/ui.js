@@ -35,210 +35,6 @@ function setupMeldungInput(id) {
   input.addEventListener('click', () => showDruckOverlay(id));
 }
 
-// Zeigt das Overlay zur Auswahl eines Druckwerts an
-function showDruckOverlay(inputId) {
-  const overlay = document.getElementById('druck-overlay');
-  const grid = document.getElementById('druck-grid');
-  grid.innerHTML = '';
-
-  const druckWerteMeldung = Array.from({ length: 64 }, (_, i) => 5 + i * 5);
-  druckWerteMeldung.forEach(wert => {
-    const btn = document.createElement('button');
-    btn.className = 'druck-btn';
-    btn.textContent = `${wert}`;
-    btn.setAttribute('data-druck', wert);
-    btn.addEventListener('click', () => {
-      const input = document.getElementById(inputId);
-      input.value = `${wert} bar`;
-      closeDruckOverlay();
-    });
-    grid.appendChild(btn);
-  });
-
-  overlay.style.display = 'flex';
-}
-
-// Zeigt das Overlay zur Auswahl eines Namens an
-function showNameOverlay(inputId) {
-  const overlay = document.getElementById('name-overlay');
-  const grid = document.getElementById('name-grid');
-  grid.innerHTML = '';
-
-  // Add custom name input
-  const customInputDiv = document.createElement('div');
-  customInputDiv.className = 'custom-name';
-  customInputDiv.innerHTML = `
-    <label>Alternativer Name:</label>
-    <input type="text" id="custom-name-input">
-    <button onclick="selectCustomName('${inputId}')">Bestätigen</button>
-  `;
-  grid.appendChild(customInputDiv);
-
-  // Add predefined names
-  agtlerNamen.forEach(name => {
-    const btn = document.createElement('button');
-    btn.className = 'name-btn';
-    btn.textContent = name;
-    btn.addEventListener('click', () => {
-      const input = document.getElementById(inputId);
-      input.value = name;
-      closeNameOverlay();
-    });
-    grid.appendChild(btn);
-  });
-
-  overlay.style.display = 'flex';
-}
-
-// Übernimmt einen benutzerdefinierten Namen aus dem Overlay
-function selectCustomName(inputId) {
-  const customInput = document.getElementById('custom-name-input');
-  const input = document.getElementById(inputId);
-  if (customInput.value.trim()) {
-    input.value = customInput.value.trim();
-    closeNameOverlay();
-  } else {
-    alert("Bitte einen Namen eingeben.");
-  }
-}
-
-// Zeigt das Overlay zur Auswahl eines Truppnamens an
-function showTruppNameOverlay() {
-  const overlay = document.getElementById('truppname-overlay');
-  const grid = document.getElementById('truppname-grid');
-  grid.innerHTML = '';
-
-  // Add custom truppname input
-  const customInputDiv = document.createElement('div');
-  customInputDiv.className = 'custom-name';
-  customInputDiv.innerHTML = `
-    <label>Alternativer Truppname:</label>
-    <input type="text" id="custom-truppname-input">
-    <button onclick="selectCustomTruppName()">Bestätigen</button>
-  `;
-  grid.appendChild(customInputDiv);
-
-  // Add predefined truppnames
-  truppNameVorschlaege.forEach(name => {
-    const btn = document.createElement('button');
-    btn.className = 'name-btn';
-    btn.textContent = name;
-    btn.addEventListener('click', () => {
-      const input = document.getElementById('trupp-name-input');
-      input.value = name;
-      closeTruppNameOverlay();
-    });
-    grid.appendChild(btn);
-  });
-
-  overlay.style.display = 'flex';
-}
-
-// Übernimmt einen benutzerdefinierten Truppnamen aus dem Overlay
-function selectCustomTruppName() {
-  const customInput = document.getElementById('custom-truppname-input');
-  const input = document.getElementById('trupp-name-input');
-  if (customInput.value.trim()) {
-    input.value = customInput.value.trim();
-    closeTruppNameOverlay();
-  } else {
-    alert("Bitte einen Truppnamen eingeben.");
-  }
-}
-
-// Zeigt das Overlay zur Auswahl eines Auftrags an
-function showMissionOverlay(context, truppId = null) {
-  const overlay = document.getElementById('mission-overlay');
-  const grid = document.getElementById('mission-grid');
-  grid.innerHTML = '';
-
-  // Add custom mission input
-  const customInputDiv = document.createElement('div');
-  customInputDiv.className = 'custom-mission';
-  customInputDiv.innerHTML = `
-    <label>Alternativer Auftrag:</label>
-    <input type="text" id="custom-mission-input">
-    <button onclick="selectCustomMission('${context}', ${truppId})">Bestätigen</button>
-  `;
-  grid.appendChild(customInputDiv);
-
-  // Add predefined missions
-  auftragVorschlaege.forEach(auftrag => {
-    const btn = document.createElement('button');
-    btn.className = 'mission-btn';
-    btn.textContent = auftrag;
-    btn.addEventListener('click', () => {
-      if (context === 'create') {
-        selectedMission = auftrag;
-        document.getElementById('trupp-mission-display').value = auftrag;
-      } else {
-        updateMission(truppId, auftrag);
-      }
-      closeMissionOverlay();
-    });
-    grid.appendChild(btn);
-  });
-
-  overlay.style.display = 'flex';
-}
-
-// Übernimmt einen benutzerdefinierten Auftrag aus dem Overlay
-function selectCustomMission(context, truppId) {
-  const customInput = document.getElementById('custom-mission-input');
-  if (customInput.value.trim()) {
-    if (context === 'create') {
-      selectedMission = customInput.value.trim();
-      document.getElementById('trupp-mission-display').value = customInput.value.trim();
-    } else {
-      updateMission(truppId, customInput.value.trim());
-    }
-    closeMissionOverlay();
-  } else {
-    alert("Bitte einen Auftrag eingeben.");
-  }
-}
-
-// Schließt das Overlay für den Auftrag
-function closeMissionOverlay() {
-  const overlay = document.getElementById('mission-overlay');
-  overlay.style.display = 'none';
-}
-
-// Zeigt das Overlay für einen Notfall an (auslösen oder beenden)
-function showNotfallOverlay(truppId, isEndNotfall = false) {
-  const overlay = document.getElementById('notfall-overlay');
-  const content = document.getElementById('notfall-content');
-  content.innerHTML = `
-    <h3>${isEndNotfall ? 'AGT Notfall beenden' : 'AGT Notfall auslösen'}</h3>
-    <button onclick="confirmNotfall(${truppId}, ${isEndNotfall})">Bestätigen</button>
-  `;
-  overlay.style.display = 'flex';
-}
-
-// Schließt das Notfall-Overlay
-function closeNotfallOverlay() {
-  const overlay = document.getElementById('notfall-overlay');
-  overlay.style.display = 'none';
-}
-
-// Schließt das Druck-Overlay
-function closeDruckOverlay() {
-  const overlay = document.getElementById('druck-overlay');
-  overlay.style.display = 'none';
-}
-
-// Schließt das Name-Overlay
-function closeNameOverlay() {
-  const overlay = document.getElementById('name-overlay');
-  overlay.style.display = 'none';
-}
-
-// Schließt das Truppname-Overlay
-function closeTruppNameOverlay() {
-  const overlay = document.getElementById('truppname-overlay');
-  overlay.style.display = 'none';
-}
-
 // Rendert eine Trupp-Karte im UI mit allen Buttons und Infos
 function renderTrupp(trupp) {
   const container = document.getElementById("trupp-container");
@@ -303,11 +99,18 @@ function renderTrupp(trupp) {
   ablegenBtn.textContent = "Trupp legt ab";
   ablegenBtn.style.display = "none";
   ablegenBtn.onclick = () => {
-    startButton.style.display = "inline";
-    ablegenBtn.style.display = "none";
-    notfallBtn.style.display = "none";
-    loeschenBtn.style.display = "inline"; // Show "Trupp auflösen" when inactive
-    ablegen(trupp);
+    if (ablegen(trupp)) {
+      startButton.style.display = "inline";
+      ablegenBtn.style.display = "none";
+      notfallBtn.style.display = "none";
+      loeschenBtn.style.display = "inline";
+      // Druckfelder leeren
+      trupp.members.forEach((_, index) => {
+        const druckInput = document.getElementById(`meldung-${index}-${trupp.id}`);
+        if (druckInput) druckInput.value = '';
+      });
+      updateTruppCard(trupp); // Druckanzeige und Grafik aktualisieren
+    }
   };
   card.appendChild(ablegenBtn);
 

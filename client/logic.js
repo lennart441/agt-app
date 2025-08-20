@@ -208,6 +208,11 @@ function createTrupp() {
     return;
   }
 
+  if (members.some(member => member.druck < 270)) {
+    alert("Alle Truppmitglieder müssen mindestens 270 bar haben.");
+    return;
+  }
+
   if (!mission) {
     alert("Bitte einen Auftrag angeben.");
     return;
@@ -355,15 +360,47 @@ function meldung(id) {
 
 // Markiert einen Trupp als abgelegt und speichert dies
 function ablegen(trupp) {
+  // Neue Druckwerte aus dem Meldungsformular holen
+  const druckInputs = trupp.members.map((_, index) => {
+    const druckInput = document.getElementById(`meldung-${index}-${trupp.id}`);
+    const druckValue = druckInput ? druckInput.value.replace(' bar', '').trim() : '';
+    return {
+      druck: druckValue === '' ? null : parseInt(druckValue),
+      role: index === 0 ? "TF" : `TM${index}`
+    };
+  });
+
+  // Prüfen, ob alle Druckwerte vorhanden und gültig sind
+  const alleDruckeVorhanden = druckInputs.every(input => input.druck !== null && !isNaN(input.druck));
+  if (!alleDruckeVorhanden) {
+    alert("Bitte für alle Truppmitglieder einen Druckwert eintragen.");
+    return false;
+  }
+
+  // Prüfen, ob kein Wert höher als der aktuelle Wert ist
+  for (let i = 0; i < druckInputs.length; i++) {
+    const currentDruck = druckInputs[i].druck;
+    const lastDruck = trupp.members[i].druck;
+    if (currentDruck > lastDruck) {
+      alert("Der abgelegte Druck darf nicht höher als der aktuelle Druck sein.");
+      return false;
+    }
+  }
+
+  // Druckwerte übernehmen
+  trupp.members.forEach((member, index) => {
+    member.druck = druckInputs[index].druck;
+  });
+
   if (trupp.intervalRef) clearInterval(trupp.intervalRef);
   trupp.startZeit = null; // Reset startZeit to indicate trupp is not active
   const zeit = new Date().toLocaleTimeString();
-  trupp.meldungen.push({ kommentar: `${zeit}: Trupp hat abgelegt`, members: trupp.members.map(m => ({ role: m.role, druck: m.druck })) });
+  trupp.meldungen.push({ kommentar: `${zeit}: Trupp hat abgelegt`, members: druckInputs });
   zeigeMeldungen(trupp);
   document.getElementById(`trupp-${trupp.id}`).classList.remove("warnphase", "alarmphase");
-  // Do not set trupp.inaktiv = true; keep trupp active after ablegen
   saveTruppsToLocalStorage();
   syncTruppsToServer(); // Sync after ablegen
+  return true;
 }
 
 // Bestätigt oder beendet einen Notfall für einen Trupp
