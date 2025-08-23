@@ -14,8 +14,9 @@ function showDruckOverlay(inputId) {
     btn.setAttribute('data-druck', wert);
     btn.addEventListener('click', () => {
       const input = document.getElementById(inputId);
-      input.value = `${wert} bar`;
+      if (input) input.value = `${wert} bar`;
       closeDruckOverlay();
+      if (window.selectDruckForAddMember) window.selectDruckForAddMember(wert);
     });
     grid.appendChild(btn);
   });
@@ -31,10 +32,18 @@ function showNameOverlay(inputId) {
   // Add custom name input
   const customInputDiv = document.createElement('div');
   customInputDiv.className = 'custom-name';
+  let buttonHtml = '';
+  if (inputId.startsWith('tm') || inputId === 'tf-name') {
+    // Trupp-Erstellung: nur "Bestätigen" anzeigen
+    buttonHtml = `<button onclick="selectCustomName('${inputId}')">Bestätigen</button>`;
+  } else {
+    // Mitglied hinzufügen: nur "Mitglied hinzufügen" anzeigen
+    buttonHtml = `<button onclick="window.selectCustomNameForAddMember && window.selectCustomNameForAddMember(document.getElementById('custom-name-input').value)">Mitglied hinzufügen</button>`;
+  }
   customInputDiv.innerHTML = `
     <label>Alternativer Name:</label>
     <input type="text" id="custom-name-input">
-    <button onclick="selectCustomName('${inputId}')">Bestätigen</button>
+    ${buttonHtml}
   `;
   grid.appendChild(customInputDiv);
 
@@ -45,8 +54,11 @@ function showNameOverlay(inputId) {
     btn.textContent = name;
     btn.addEventListener('click', () => {
       const input = document.getElementById(inputId);
-      input.value = name;
+      if (input) input.value = name;
       closeNameOverlay();
+      if (!inputId.startsWith('tm') && inputId !== 'tf-name' && window.selectCustomNameForAddMember) {
+        window.selectCustomNameForAddMember(name);
+      }
     });
     grid.appendChild(btn);
   });
@@ -235,6 +247,60 @@ function addTokenButton() {
     btn.style.zIndex = '9999';
     btn.onclick = showTokenOverlay;
     document.body.appendChild(btn);
+  }
+}
+
+function openOverlay(type, truppId) {
+    if (type === 'add-member') {
+        // Overlay für Name und Druck anzeigen
+        document.getElementById('add-member-overlay').style.display = 'block';
+        // Name-Feld: Vorschlagsliste wie bei showNameOverlay
+        const nameInput = document.getElementById('add-member-name');
+        nameInput.onclick = function() {
+            showNameOverlay('add-member-name');
+        };
+        // Druck-Feld: Vorschlagsliste wie bei showDruckOverlay
+        const druckInput = document.getElementById('add-member-druck');
+        druckInput.onclick = function() {
+            showDruckOverlay('add-member-druck');
+        };
+        // Bestätigungs-Button
+        document.getElementById('add-member-confirm').onclick = function() {
+            const name = nameInput.value;
+            const druck = parseInt(druckInput.value, 10);
+            addMemberToTrupp(truppId, name, druck);
+            document.getElementById('add-member-overlay').style.display = 'none';
+            nameInput.value = '';
+            druckInput.value = '';
+        };
+    }
+}
+
+function addMemberToTrupp(truppId, name, druckRaw) {
+  // Druck korrekt auslesen (nur Zahl)
+  let druck = typeof druckRaw === 'string' ? parseInt(druckRaw.replace(/[^0-9]/g, ''), 10) : druckRaw;
+  if (isNaN(druck) || druck < 270) {
+    alert('Der Druck muss mindestens 270 bar betragen.');
+    return;
+  }
+  // Trupp holen
+  const trupp = getTruppById(truppId);
+  if (!trupp) return;
+  // Rolle für neues Mitglied bestimmen
+  const nextIndex = trupp.members.length + 1;
+  const role = `TM${nextIndex - 1}`;
+  trupp.members.push({ name, druck, role });
+  // Log-Nachricht erzeugen
+  const now = new Date().toLocaleString();
+  if (!trupp.meldungen) trupp.meldungen = [];
+  trupp.meldungen.push({ kommentar: `Mitglied ${name} mit ${druck} bar hinzugefügt am ${now}` });
+  // UI aktualisieren
+  saveTruppsToLocalStorage();
+  renderTrupp(trupp);
+  zeigeMeldungen(trupp);
+  // Timer ggf. weiterführen
+  if (!trupp.inaktiv && trupp.startZeit) {
+    startTimer(trupp);
   }
 }
 

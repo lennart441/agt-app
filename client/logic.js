@@ -437,3 +437,44 @@ function updateMission(truppId, newMission) {
     syncTruppsToServer(); // Sync after mission update
   }
 }
+
+// Fügt ein Mitglied zu einem Trupp hinzu
+function addMemberToTrupp(truppId, name, druck) {
+    const trupp = getTruppById(truppId);
+    if (!trupp || druck < 270) return;
+    trupp.mitglieder.push({ name, druck });
+    // Log-Nachricht
+    const now = new Date().toLocaleString();
+    trupp.log.push(`Mitglied ${name} mit ${druck} bar hinzugefügt am ${now}`);
+    // Grafik/Balken aktualisieren
+    updateTruppBar(trupp);
+    saveTrupps();
+    renderTrupp(trupp);
+}
+
+// Aktualisiert die Grafik/Balken eines Trupps
+function updateTruppBar(trupp) {
+    const minDruck = Math.min(...trupp.members.map(m => m.druck));
+    const maxDruck = Math.max(...trupp.members.map(m => m.druck));
+    const drittel = (maxDruck - minDruck) / 3;
+    const farben = ['red', 'yellow', 'green'];
+    const balken = document.getElementById(`balken-${trupp.id}`);
+    if (balken) {
+      const gesamtDruck = trupp.members.reduce((sum, m) => sum + m.druck, 0);
+      const avgDruck = gesamtDruck / trupp.members.length;
+      let farbe = 'green';
+      if (avgDruck < minDruck + drittel) {
+        farbe = 'red';
+      } else if (avgDruck < minDruck + 2 * drittel) {
+        farbe = 'yellow';
+      }
+      balken.style.width = `${avgDruck - minDruck}px`;
+      balken.style.backgroundColor = farbe;
+    }
+}
+
+// Hilfsfunktion, um einen Trupp anhand der ID zu finden
+function getTruppById(truppId) {
+  // Annahme: trupps ist ein Array aller Trupps
+  return trupps.find(t => t.id === truppId);
+}

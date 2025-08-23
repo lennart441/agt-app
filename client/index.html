@@ -80,6 +80,15 @@
     <div id="notfall-content"></div>
   </div>
 
+  <!-- Overlay für Mitglied hinzufügen -->
+  <div id="add-member-overlay" class="overlay" style="display:none;">
+    <h2>Mitglied hinzufügen</h2>
+    <label>Name: <input type="text" id="add-member-name"></label>
+    <label>Druck: <input type="number" id="add-member-druck" min="270"></label>
+    <button id="add-member-confirm">Hinzufügen</button>
+    <button onclick="closeOverlay('add-member-overlay')">Abbrechen</button>
+  </div>
+
   <script src="logic.js"></script>
   <script src="report.js"></script>
   <script src="ui.js"></script>

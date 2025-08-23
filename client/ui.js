@@ -38,9 +38,33 @@ function setupMeldungInput(id) {
 // Rendert eine Trupp-Karte im UI mit allen Buttons und Infos
 function renderTrupp(trupp) {
   const container = document.getElementById("trupp-container");
-  const card = document.createElement("div");
-  card.className = "trupp-card";
-  card.id = `trupp-${trupp.id}`;
+  let card = document.getElementById(`trupp-${trupp.id}`);
+  // Button-, Timer- und Intervall-Zustände merken
+  let buttonStates = {};
+  let timerText = "";
+  let savedStartZeit = trupp.startZeit;
+  let savedIntervalRef = trupp.intervalRef;
+  if (card) {
+    const btns = card.querySelectorAll('button');
+    btns.forEach(btn => {
+      if (btn.textContent === "Trupp legt an") buttonStates.start = btn.style.display;
+      if (btn.textContent === "Trupp legt ab") buttonStates.ablegen = btn.style.display;
+      if (btn.textContent === "Trupp auflösen") buttonStates.loeschen = btn.style.display;
+      if (btn.textContent === "Auftrag ändern") buttonStates.changeMission = btn.style.display;
+    });
+    const notfallBtn = card.querySelector('.notfall-btn');
+    if (notfallBtn) buttonStates.notfall = notfallBtn.style.display;
+    const timerDiv = card.querySelector(`#timer-${trupp.id}`);
+    if (timerDiv) timerText = timerDiv.textContent;
+  }
+  if (!card) {
+    card = document.createElement("div");
+    card.className = "trupp-card";
+    card.id = `trupp-${trupp.id}`;
+    container.appendChild(card);
+  } else {
+    card.innerHTML = ""; // Bestehende Karte leeren, um sie neu zu rendern
+  }
 
   const title = document.createElement("h2");
   title.textContent = trupp.name;
@@ -87,7 +111,10 @@ function renderTrupp(trupp) {
     startButton.style.display = "none";
     ablegenBtn.style.display = "inline";
     notfallBtn.style.display = "inline";
-    loeschenBtn.style.display = "none"; // Hide "Trupp auflösen" when active
+    loeschenBtn.style.display = "none";
+    // Button 'Mitglied hinzufügen' entfernen
+    const addMemberBtnRemove = card.querySelector('.add-member-btn');
+    if (addMemberBtnRemove) addMemberBtnRemove.remove();
     startTimer(trupp);
     const startKommentar = `Angelegt um ${new Date().toLocaleTimeString()}`;
     trupp.meldungen.push({ kommentar: startKommentar, members: trupp.members.map(m => ({ role: m.role, druck: m.druck })) });
@@ -166,7 +193,21 @@ function renderTrupp(trupp) {
   `;
   card.appendChild(meldungForm);
 
-  container.appendChild(card);
+  // Button zum Hinzufügen eines Mitglieds neben dem Melden-Button
+  const addMemberBtn = document.createElement('button');
+  addMemberBtn.textContent = 'Mitglied hinzufügen';
+  addMemberBtn.className = 'add-member-btn';
+  addMemberBtn.onclick = () => showAddMemberOverlay(trupp.id);
+  // Button-Bereich finden und neuen Button einfügen
+  const buttonArea = card.querySelector('.button-area');
+  if (!trupp.startZeit) {
+    if (buttonArea) {
+      buttonArea.appendChild(addMemberBtn);
+    } else {
+      card.appendChild(addMemberBtn);
+    }
+  }
+
   trupp.members.forEach((_, index) => {
     setupMeldungInput(`meldung-${index}-${trupp.id}`);
   });
@@ -183,6 +224,49 @@ function renderTrupp(trupp) {
     inputs.forEach(input => input.style.display = "none");
     zeigeMeldungen(trupp);
   }
+
+  // Nach dem Rendern die Button- und Timer-Zustände wiederherstellen
+  const btns = card.querySelectorAll('button');
+  btns.forEach(btn => {
+    if (btn.textContent === "Trupp legt an" && buttonStates.start !== undefined) btn.style.display = buttonStates.start;
+    if (btn.textContent === "Trupp legt ab" && buttonStates.ablegen !== undefined) btn.style.display = buttonStates.ablegen;
+    if (btn.textContent === "Trupp auflösen" && buttonStates.loeschen !== undefined) btn.style.display = buttonStates.loeschen;
+    if (btn.textContent === "Auftrag ändern" && buttonStates.changeMission !== undefined) btn.style.display = buttonStates.changeMission;
+  });
+  const notfallBtnRestore = card.querySelector('.notfall-btn');
+  if (notfallBtnRestore && buttonStates.notfall !== undefined) notfallBtnRestore.style.display = buttonStates.notfall;
+  const timerDivRestore = card.querySelector(`#timer-${trupp.id}`);
+  if (timerDivRestore && timerText) timerDivRestore.textContent = timerText;
+  // Timer- und Intervall-Zustände zurücksetzen
+  trupp.startZeit = savedStartZeit;
+  trupp.intervalRef = savedIntervalRef;
+  // Timer-Intervall nur setzen, wenn noch keins läuft und startZeit existiert
+  if (!trupp.inaktiv && trupp.startZeit && !trupp.intervalRef) {
+    startTimer(trupp);
+  }
+}
+
+// Overlay-Callback
+function showAddMemberOverlay(truppId) {
+  // Schritt 1: Name wählen
+  showNameOverlayForAddMember(truppId);
+}
+
+function showNameOverlayForAddMember(truppId) {
+  showNameOverlay('add-member-temp-name');
+  // Nach Auswahl im Overlay wird die Funktion selectCustomNameForAddMember aufgerufen
+  window.selectCustomNameForAddMember = function (name) {
+    closeNameOverlay();
+    showDruckOverlayForAddMember(truppId, name);
+  };
+}
+
+function showDruckOverlayForAddMember(truppId, name) {
+  showDruckOverlay('add-member-temp-druck');
+  window.selectDruckForAddMember = function (druck) {
+    closeDruckOverlay();
+    addMemberToTrupp(truppId, name, druck);
+  };
 }
 
 // Aktualisiert die Trupp-Karte (z.B. nach einer Meldung oder Notfall)
@@ -281,12 +365,12 @@ function showTokenOverlay() {
       <button id="token-cancel-btn">Abbrechen</button>
     `;
     document.body.appendChild(overlay);
-    document.getElementById('token-save-btn').onclick = function() {
+    document.getElementById('token-save-btn').onclick = function () {
       const newToken = document.getElementById('token-input').value.trim();
       setTokenInUrl(newToken);
       document.body.removeChild(overlay);
     };
-    document.getElementById('token-cancel-btn').onclick = function() {
+    document.getElementById('token-cancel-btn').onclick = function () {
       document.body.removeChild(overlay);
     };
   }

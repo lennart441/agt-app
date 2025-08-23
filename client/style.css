@@ -356,3 +356,27 @@ input, select {
   border-top: 1px solid #ccc;
   margin: 0.5rem 0;
 }
+
+/* Warnphase: gelber Hintergrund */
+.warnphase {
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+}
+
+/* Alarmphase: roter Hintergrund */
+.alarmphase {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+}
+
+/* Warnung: auffällige Box */
+.warnung {
+  color: #856404;
+  background: #fff3cd;
+  border: 2px solid #ffeeba;
+  padding: 8px;
+  margin-top: 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
