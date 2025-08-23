@@ -1,9 +1,16 @@
+// ui.js
+// Modul für die UI-Logik und das Rendering der Truppkarten
+// Steuert die Darstellung, Interaktion und Aktualisierung der Truppkarten im Haupt-UI
+// Overlay-Interaktionen werden an overlays.js delegiert
+
 // Zählt die Anzahl der Mitglieder im Trupp-Formular
 let memberCounter = 2;
 // Speichert den aktuell ausgewählten Auftrag
 let selectedMission = '';
 
-// Zeigt das Formular zum Erstellen eines neuen Trupps an oder versteckt es
+/**
+ * Zeigt das Formular zum Erstellen eines neuen Trupps an oder versteckt es.
+ */
 function showTruppForm() {
   const formWrapper = document.getElementById("trupp-form-wrapper");
   formWrapper.style.display = formWrapper.style.display === "none" ? "flex" : "none";
@@ -14,7 +21,9 @@ function showTruppForm() {
   selectedMission = '';
 }
 
-// Fügt ein weiteres Mitglied (Truppmann) zum Trupp-Formular hinzu
+/**
+ * Fügt ein weiteres Mitglied (Truppmann) zum Trupp-Formular hinzu.
+ */
 function addTruppMember() {
   const membersDiv = document.getElementById("trupp-members");
   const newMemberDiv = document.createElement("div");
@@ -29,13 +38,18 @@ function addTruppMember() {
   memberCounter++;
 }
 
-// Fügt einen Event-Listener für das Druck-Eingabefeld hinzu, um das Overlay zu öffnen
+/**
+ * Fügt einen Event-Listener für das Druck-Eingabefeld hinzu, um das Overlay zu öffnen.
+ */
 function setupMeldungInput(id) {
   const input = document.getElementById(id);
   input.addEventListener('click', () => showDruckOverlay(id));
 }
 
-// Rendert eine Trupp-Karte im UI mit allen Buttons und Infos
+/**
+ * Rendert eine Trupp-Karte im UI mit allen Buttons und Infos.
+ * @param {object} trupp - Das Trupp-Objekt mit allen Daten.
+ */
 function renderTrupp(trupp) {
   const container = document.getElementById("trupp-container");
   let card = document.getElementById(`trupp-${trupp.id}`);
@@ -246,12 +260,17 @@ function renderTrupp(trupp) {
   }
 }
 
-// Overlay-Callback
+/**
+ * Overlay-Callback für das Hinzufügen eines Mitglieds.
+ */
 function showAddMemberOverlay(truppId) {
   // Schritt 1: Name wählen
   showNameOverlayForAddMember(truppId);
 }
 
+/**
+ * Overlay-Callback für die Namensauswahl beim Hinzufügen eines Mitglieds.
+ */
 function showNameOverlayForAddMember(truppId) {
   showNameOverlay('add-member-temp-name');
   // Nach Auswahl im Overlay wird die Funktion selectCustomNameForAddMember aufgerufen
@@ -261,6 +280,9 @@ function showNameOverlayForAddMember(truppId) {
   };
 }
 
+/**
+ * Overlay-Callback für die Druckauswahl beim Hinzufügen eines Mitglieds.
+ */
 function showDruckOverlayForAddMember(truppId, name) {
   showDruckOverlay('add-member-temp-druck');
   window.selectDruckForAddMember = function (druck) {
@@ -269,7 +291,9 @@ function showDruckOverlayForAddMember(truppId, name) {
   };
 }
 
-// Aktualisiert die Trupp-Karte (z.B. nach einer Meldung oder Notfall)
+/**
+ * Aktualisiert die Trupp-Karte (z.B. nach einer Meldung oder Notfall).
+ */
 function updateTruppCard(trupp) {
   const card = document.getElementById(`trupp-${trupp.id}`);
   if (!card) return;
@@ -306,7 +330,9 @@ function updateTruppCard(trupp) {
   }
 }
 
-// Zeigt alle Meldungen eines Trupps im UI an
+/**
+ * Zeigt alle Meldungen eines Trupps im UI an.
+ */
 function zeigeMeldungen(trupp) {
   const meldungDiv = document.getElementById(`meldungen-${trupp.id}`);
   meldungDiv.innerHTML = "";
@@ -318,76 +344,4 @@ function zeigeMeldungen(trupp) {
       : m.kommentar;
     meldungDiv.appendChild(p);
   });
-}
-
-// Fügt Event-Listener für die Schließen-Buttons der Overlays hinzu
-// und initialisiert die UI nach dem Laden der Seite
-document.addEventListener('DOMContentLoaded', () => {
-  const closeDruckBtn = document.getElementById('close-overlay');
-  if (closeDruckBtn) {
-    closeDruckBtn.addEventListener('click', closeDruckOverlay);
-  }
-  const closeNameBtn = document.getElementById('close-name-overlay');
-  if (closeNameBtn) {
-    closeNameBtn.addEventListener('click', closeNameOverlay);
-  }
-  const closeNotfallBtn = document.getElementById('close-notfall-overlay');
-  if (closeNotfallBtn) {
-    closeNotfallBtn.addEventListener('click', closeNotfallOverlay);
-  }
-  const closeMissionBtn = document.getElementById('close-mission-overlay');
-  if (closeMissionBtn) {
-    closeMissionBtn.addEventListener('click', closeMissionOverlay);
-  }
-  const closeTruppNameBtn = document.getElementById('close-truppname-overlay');
-  if (closeTruppNameBtn) {
-    closeTruppNameBtn.addEventListener('click', closeTruppNameOverlay);
-  }
-});
-
-// Zeigt das Overlay zur Token-Eingabe an
-function showTokenOverlay() {
-  let overlay = document.getElementById('token-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'token-overlay';
-    overlay.style.position = 'fixed';
-    overlay.style.bottom = '0';
-    overlay.style.right = '0';
-    overlay.style.background = 'rgba(0,0,0,0.8)';
-    overlay.style.color = '#fff';
-    overlay.style.padding = '20px';
-    overlay.style.zIndex = '10000';
-    overlay.innerHTML = `
-      <div style="margin-bottom:10px;">Operation-Token eingeben:</div>
-      <input id="token-input" type="text" value="${OPERATION_TOKEN}" style="width:200px;">
-      <button id="token-save-btn">Speichern</button>
-      <button id="token-cancel-btn">Abbrechen</button>
-    `;
-    document.body.appendChild(overlay);
-    document.getElementById('token-save-btn').onclick = function () {
-      const newToken = document.getElementById('token-input').value.trim();
-      setTokenInUrl(newToken);
-      document.body.removeChild(overlay);
-    };
-    document.getElementById('token-cancel-btn').onclick = function () {
-      document.body.removeChild(overlay);
-    };
-  }
-}
-
-// Fügt den Button zum Token-Ändern unten rechts hinzu
-function addTokenButton() {
-  let btn = document.getElementById('token-btn');
-  if (!btn) {
-    btn = document.createElement('button');
-    btn.id = 'token-btn';
-    btn.textContent = 'Token ändern';
-    btn.style.position = 'fixed';
-    btn.style.bottom = '10px';
-    btn.style.right = '10px';
-    btn.style.zIndex = '9999';
-    btn.onclick = showTokenOverlay;
-    document.body.appendChild(btn);
-  }
 }

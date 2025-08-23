@@ -1,6 +1,12 @@
 // overlays.js
-// Enthält alle Overlay-bezogenen Funktionen und Event-Listener
+// Modul für alle Overlay-bezogenen Funktionen und Event-Listener
+// Steuert die Anzeige, Auswahl und Schließlogik der Overlays für Eingaben (Druck, Name, Auftrag, Notfall, Token)
+// Ruft zentrale Logikfunktionen aus logic.js auf
 
+/**
+ * Zeigt das Druck-Overlay zur Auswahl eines Druckwerts an.
+ * @param {string} inputId - Die ID des Eingabefelds, das gesetzt werden soll.
+ */
 function showDruckOverlay(inputId) {
   const overlay = document.getElementById('druck-overlay');
   const grid = document.getElementById('druck-grid');
@@ -22,8 +28,13 @@ function showDruckOverlay(inputId) {
   });
 
   overlay.style.display = 'flex';
+  addOverlayEscListener('druck-overlay', closeDruckOverlay);
 }
 
+/**
+ * Zeigt das Name-Overlay zur Auswahl eines Namens an.
+ * @param {string} inputId - Die ID des Eingabefelds, das gesetzt werden soll.
+ */
 function showNameOverlay(inputId) {
   const overlay = document.getElementById('name-overlay');
   const grid = document.getElementById('name-grid');
@@ -64,8 +75,12 @@ function showNameOverlay(inputId) {
   });
 
   overlay.style.display = 'flex';
+  addOverlayEscListener('name-overlay', closeNameOverlay);
 }
 
+/**
+ * Setzt den benutzerdefinierten Namen im Eingabefeld.
+ */
 function selectCustomName(inputId) {
   const customInput = document.getElementById('custom-name-input');
   const input = document.getElementById(inputId);
@@ -73,10 +88,13 @@ function selectCustomName(inputId) {
     input.value = customInput.value.trim();
     closeNameOverlay();
   } else {
-    alert("Bitte einen Namen eingeben.");
+    showErrorOverlay("Bitte einen Namen eingeben.");
   }
 }
 
+/**
+ * Zeigt das Overlay zur Auswahl eines Truppnamens an.
+ */
 function showTruppNameOverlay() {
   const overlay = document.getElementById('truppname-overlay');
   const grid = document.getElementById('truppname-grid');
@@ -106,8 +124,12 @@ function showTruppNameOverlay() {
   });
 
   overlay.style.display = 'flex';
+  addOverlayEscListener('truppname-overlay', closeTruppNameOverlay);
 }
 
+/**
+ * Setzt den benutzerdefinierten Truppnamen im Eingabefeld.
+ */
 function selectCustomTruppName() {
   const customInput = document.getElementById('custom-truppname-input');
   const input = document.getElementById('trupp-name-input');
@@ -115,10 +137,13 @@ function selectCustomTruppName() {
     input.value = customInput.value.trim();
     closeTruppNameOverlay();
   } else {
-    alert("Bitte einen Truppnamen eingeben.");
+    showErrorOverlay("Bitte einen Truppnamen eingeben.");
   }
 }
 
+/**
+ * Zeigt das Overlay zur Auswahl eines Auftrags an.
+ */
 function showMissionOverlay(context, truppId = null) {
   const overlay = document.getElementById('mission-overlay');
   const grid = document.getElementById('mission-grid');
@@ -152,8 +177,12 @@ function showMissionOverlay(context, truppId = null) {
   });
 
   overlay.style.display = 'flex';
+  addOverlayEscListener('mission-overlay', closeMissionOverlay);
 }
 
+/**
+ * Setzt den benutzerdefinierten Auftrag.
+ */
 function selectCustomMission(context, truppId) {
   const customInput = document.getElementById('custom-mission-input');
   if (customInput.value.trim()) {
@@ -165,15 +194,21 @@ function selectCustomMission(context, truppId) {
     }
     closeMissionOverlay();
   } else {
-    alert("Bitte einen Auftrag eingeben.");
+    showErrorOverlay("Bitte einen Auftrag eingeben.");
   }
 }
 
+/**
+ * Schließt das Mission-Overlay.
+ */
 function closeMissionOverlay() {
   const overlay = document.getElementById('mission-overlay');
   overlay.style.display = 'none';
 }
 
+/**
+ * Zeigt das Notfall-Overlay für einen Trupp an.
+ */
 function showNotfallOverlay(truppId, isEndNotfall = false) {
   const overlay = document.getElementById('notfall-overlay');
   const content = document.getElementById('notfall-content');
@@ -183,28 +218,44 @@ function showNotfallOverlay(truppId, isEndNotfall = false) {
     <button onclick="closeNotfallOverlay()">Abbrechen</button>
   `;
   overlay.style.display = 'flex';
+  addOverlayEscListener('notfall-overlay', closeNotfallOverlay);
 }
 
+/**
+ * Schließt das Notfall-Overlay.
+ */
 function closeNotfallOverlay() {
   const overlay = document.getElementById('notfall-overlay');
   overlay.style.display = 'none';
 }
 
+/**
+ * Schließt das Druck-Overlay.
+ */
 function closeDruckOverlay() {
   const overlay = document.getElementById('druck-overlay');
   overlay.style.display = 'none';
 }
 
+/**
+ * Schließt das Name-Overlay.
+ */
 function closeNameOverlay() {
   const overlay = document.getElementById('name-overlay');
   overlay.style.display = 'none';
 }
 
+/**
+ * Schließt das Truppname-Overlay.
+ */
 function closeTruppNameOverlay() {
   const overlay = document.getElementById('truppname-overlay');
   overlay.style.display = 'none';
 }
 
+/**
+ * Zeigt das Token-Overlay zur Eingabe/Änderung des Einsatz-Tokens an.
+ */
 function showTokenOverlay() {
   let overlay = document.getElementById('token-overlay');
   if (!overlay) {
@@ -235,6 +286,9 @@ function showTokenOverlay() {
   }
 }
 
+/**
+ * Fügt den Button zum Token-Ändern unten rechts hinzu.
+ */
 function addTokenButton() {
   let btn = document.getElementById('token-btn');
   if (!btn) {
@@ -250,6 +304,9 @@ function addTokenButton() {
   }
 }
 
+/**
+ * Öffnet das Overlay zum Hinzufügen eines Mitglieds.
+ */
 function openOverlay(type, truppId) {
     if (type === 'add-member') {
         // Overlay für Name und Druck anzeigen
@@ -268,7 +325,7 @@ function openOverlay(type, truppId) {
         document.getElementById('add-member-confirm').onclick = function() {
             const name = nameInput.value;
             const druck = parseInt(druckInput.value, 10);
-            addMemberToTrupp(truppId, name, druck);
+            addMemberToTrupp(truppId, name, druck); // Ruft jetzt die zentrale Funktion aus logic.js auf
             document.getElementById('add-member-overlay').style.display = 'none';
             nameInput.value = '';
             druckInput.value = '';
@@ -276,32 +333,17 @@ function openOverlay(type, truppId) {
     }
 }
 
-function addMemberToTrupp(truppId, name, druckRaw) {
-  // Druck korrekt auslesen (nur Zahl)
-  let druck = typeof druckRaw === 'string' ? parseInt(druckRaw.replace(/[^0-9]/g, ''), 10) : druckRaw;
-  if (isNaN(druck) || druck < 270) {
-    alert('Der Druck muss mindestens 270 bar betragen.');
-    return;
+// Escape schließt Overlays
+function addOverlayEscListener(overlayId, closeFn) {
+  const overlay = document.getElementById(overlayId);
+  if (!overlay) return;
+  function escHandler(e) {
+    if (e.key === 'Escape') {
+      closeFn();
+      document.removeEventListener('keydown', escHandler);
+    }
   }
-  // Trupp holen
-  const trupp = getTruppById(truppId);
-  if (!trupp) return;
-  // Rolle für neues Mitglied bestimmen
-  const nextIndex = trupp.members.length + 1;
-  const role = `TM${nextIndex - 1}`;
-  trupp.members.push({ name, druck, role });
-  // Log-Nachricht erzeugen
-  const now = new Date().toLocaleString();
-  if (!trupp.meldungen) trupp.meldungen = [];
-  trupp.meldungen.push({ kommentar: `Mitglied ${name} mit ${druck} bar hinzugefügt am ${now}` });
-  // UI aktualisieren
-  saveTruppsToLocalStorage();
-  renderTrupp(trupp);
-  zeigeMeldungen(trupp);
-  // Timer ggf. weiterführen
-  if (!trupp.inaktiv && trupp.startZeit) {
-    startTimer(trupp);
-  }
+  document.addEventListener('keydown', escHandler);
 }
 
 // Event-Listener für Overlay-Schließen-Buttons
@@ -328,3 +370,23 @@ document.addEventListener('DOMContentLoaded', () => {
     closeTruppNameBtn.addEventListener('click', closeTruppNameOverlay);
   }
 });
+
+/**
+ * Zeigt das zentrale Fehler-Overlay mit einer Nachricht an.
+ * @param {string} text - Die Fehlernachricht.
+ */
+function showErrorOverlay(text) {
+  const overlay = document.getElementById('error-overlay');
+  const msg = document.getElementById('error-message');
+  if (msg) msg.textContent = text;
+  if (overlay) overlay.style.display = 'flex';
+  addOverlayEscListener('error-overlay', closeErrorOverlay);
+}
+
+/**
+ * Schließt das Fehler-Overlay.
+ */
+function closeErrorOverlay() {
+  const overlay = document.getElementById('error-overlay');
+  if (overlay) overlay.style.display = 'none';
+}

@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Atemschutzüberwachung</h1>
   <button onclick="showTruppForm()">Neuer Trupp</button>
   <button onclick="uploadToNextcloud()">Bericht erstellen</button>
   <div id="main-flex-wrapper" style="display: flex; align-items: flex-start;">
@@ -87,6 +86,15 @@
     <label>Druck: <input type="number" id="add-member-druck" min="270"></label>
     <button id="add-member-confirm">Hinzufügen</button>
     <button onclick="closeOverlay('add-member-overlay')">Abbrechen</button>
+  </div>
+
+  <!-- Fehler-Overlay -->
+  <div id="error-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:99999; justify-content:center; align-items:center;">
+    <div style="background:#fff; color:#c00; padding:32px; border-radius:8px; min-width:280px; max-width:90vw; text-align:center; box-shadow:0 2px 16px rgba(0,0,0,0.2);">
+      <h2>Fehler</h2>
+      <div id="error-message"></div>
+      <button onclick="closeErrorOverlay()" style="margin-top:16px;">Schließen</button>
+    </div>
   </div>
 
   <script src="logic.js"></script>
