@@ -78,6 +78,8 @@ async function uploadToNextcloud() {
     const result = await response.json();
     alert(result.message);
     clearTrupps();
+    // Nach erfolgreichem Bericht-Upload Archiv-Container leeren
+    clearArchivContainer();
   } catch (error) {
     console.error('Fehler beim Hochladen des Berichts:', error);
     alert(`Fehler beim Hochladen des Berichts: ${error.message}`);

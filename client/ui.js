@@ -179,6 +179,10 @@ function renderTrupp(trupp) {
     loeschenBtn.style.display = "none"; // Hide after dissolving
     changeMissionBtn.style.display = "none"; // Hide "Auftrag ändern" for inactive trupps
     saveTruppsToLocalStorage(); // Save to Local Storage when trupp is dissolved
+    // Karte aus trupp-container entfernen
+    card.remove();
+    // Im Archiv anzeigen
+    renderArchivTrupp(trupp);
   };
   card.appendChild(loeschenBtn);
 
@@ -328,6 +332,8 @@ function updateTruppCard(trupp) {
   } else if (minPressure <= 50) {
     card.classList.add('low-pressure');
   }
+
+  zeigeMeldungen(trupp);
 }
 
 /**
@@ -345,3 +351,58 @@ function zeigeMeldungen(trupp) {
     meldungDiv.appendChild(p);
   });
 }
+
+/**
+ * Rendert eine archivierte Trupp-Karte im Archiv-Container
+ */
+function renderArchivTrupp(trupp) {
+  const archivContainer = document.getElementById("archiv-container");
+  let card = document.getElementById(`archiv-trupp-${trupp.id}`);
+  if (!card) {
+    card = document.createElement("div");
+    card.className = "trupp-card inaktiv archiv-card";
+    card.id = `archiv-trupp-${trupp.id}`;
+    archivContainer.appendChild(card);
+  } else {
+    card.innerHTML = "";
+  }
+  const title = document.createElement("h3");
+  title.textContent = trupp.name;
+  card.appendChild(title);
+  const missionDisplay = document.createElement("div");
+  missionDisplay.innerHTML = `<strong>Auftrag: ${trupp.mission || 'Kein Auftrag'}</strong>${trupp.previousMission ? `, davor ${trupp.previousMission}` : ''}`;
+  card.appendChild(missionDisplay);
+  const agtInfo = document.createElement("p");
+  agtInfo.innerHTML = trupp.members.map(m => `${m.role === "TF" ? "Truppführer" : `Truppmann ${m.role.slice(2)}`}: ${m.name} (${m.druck} bar)`).join("<br>");
+  card.appendChild(agtInfo);
+  // Meldungen anzeigen
+  const meldungDiv = document.createElement("div");
+  meldungDiv.innerHTML = "<h4>Meldungen:</h4>";
+  [...trupp.meldungen].reverse().forEach(m => {
+    const p = document.createElement("p");
+    p.textContent = m.members
+      ? `${m.kommentar} (${m.members.map(mem => `${mem.role}: ${mem.druck} bar`).join(", ")})`
+      : m.kommentar;
+    meldungDiv.appendChild(p);
+  });
+  card.appendChild(meldungDiv);
+}
+
+/**
+ * Leert den Archiv-Container (z.B. nach Bericht-Upload)
+ */
+function clearArchivContainer() {
+  const archivContainer = document.getElementById("archiv-container");
+  archivContainer.innerHTML = "";
+}
+
+// Beim Laden archivierte Trupps ins Archiv-Container rendern
+function renderArchivierteTrupps() {
+  trupps.filter(t => t.inaktiv).forEach(renderArchivTrupp);
+}
+
+// Nach dem Laden der Seite
+window.addEventListener('DOMContentLoaded', async () => {
+  loadTruppsFromLocalStorage();
+  renderArchivierteTrupps();
+});

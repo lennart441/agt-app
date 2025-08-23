@@ -177,8 +177,10 @@ function loadTruppsFromLocalStorage() {
           })) : undefined
         }));
         trupps.push(trupp);
-        renderTrupp(trupp);
-        zeigeMeldungen(trupp);
+        // Entferne renderArchivTrupp(trupp) aus loadTruppsFromLocalStorage
+        //if (trupp.inaktiv) {
+        //  renderArchivTrupp(trupp);
+        //}
       });
     } catch (error) {
       console.error('Fehler beim Laden der Trupps aus Local Storage:', error);
@@ -351,7 +353,7 @@ function meldung(id) {
       .map(m => `${m.role === "TF" ? "Truppführer" : `Truppmann ${m.role.slice(2)}`}: ${m.name} (${m.druck} bar)`)
       .join("<br>");
     trupp.meldungen.push({ kommentar: `${zeit}: ${notiz}`, members: memberDruckInputs });
-    zeigeMeldungen(trupp);
+    //zeigeMeldungen(trupp);
     // Nach erfolgreicher Druckmeldung alle Druckfelder leeren
     trupp.members.forEach((_, index) => {
       const druckInput = document.getElementById(`meldung-${index}-${id}`);
@@ -370,7 +372,7 @@ function meldung(id) {
   } else if (notiz.trim() !== '') {
     // Nur Notiz, keine neuen Druckwerte: Timer bleibt stehen
     trupp.meldungen.push({ kommentar: `${zeit}: ${notiz}` });
-    zeigeMeldungen(trupp);
+    //zeigeMeldungen(trupp);
     // Druckwerte und Anzeige bleiben unverändert
   } else {
     showErrorOverlay("Bitte entweder alle Druckwerte angeben oder eine Notiz eintragen.");
@@ -424,7 +426,7 @@ function ablegen(trupp) {
   trupp.startZeit = null; // Reset startZeit to indicate trupp is not active
   const zeit = new Date().toLocaleTimeString();
   trupp.meldungen.push({ kommentar: `${zeit}: Trupp hat abgelegt`, members: druckInputs });
-  zeigeMeldungen(trupp);
+  //zeigeMeldungen(trupp);
   document.getElementById(`trupp-${trupp.id}`).classList.remove("warnphase", "alarmphase");
   saveTruppsToLocalStorage();
   syncTruppsToServer(); // Sync after ablegen
