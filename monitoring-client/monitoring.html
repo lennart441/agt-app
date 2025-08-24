@@ -15,5 +15,12 @@
   </div>
   <div id="trupp-container"></div>
   <script src="monitor.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('monitor-sw.js', {scope: './'})
+        .then(reg => console.log('Service Worker registered:', reg))
+        .catch(err => console.error('Service Worker registration failed:', err));
+    }
+  </script>
 </body>
 </html>

@@ -105,5 +105,12 @@
   <script src="ui.js"></script>
   <script src="overlays.js"></script>
   <script src="lib/jspdf.umd.min.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js', {scope: './'})
+        .then(reg => console.log('Service Worker registered:', reg))
+        .catch(err => console.error('Service Worker registration failed:', err));
+    }
+  </script>
 </body>
 </html>

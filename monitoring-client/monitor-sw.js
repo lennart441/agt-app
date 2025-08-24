@@ -1,53 +1,42 @@
-const CACHE_NAME = 'atemschutz-monitor-cache-v1';
+const CACHE_NAME = 'agt-monitoring-cache-v1';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/monitoring-client/monitoring.html',
+  '/monitoring-client/mon-style.css',
+  '/monitoring-client/monitor.js',
+];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('Service Worker: Cache geöffnet:', CACHE_NAME);
-      return cache.addAll([
-        '/',
-        '/monitor.html',
-        '/style.css',
-        '/monitor.js',
-        '/manifest.json'
-      ]).then(() => {
-        console.log('Service Worker: Alle Dateien erfolgreich gecacht.');
-      });
-    }).catch(err => {
-      console.error('Service Worker: Fehler beim Cachen:', err);
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(ASSETS_TO_CACHE);
     })
   );
-  self.skipWaiting();
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((cacheNames) => {
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => {
       return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            console.log('Service Worker: Lösche alten Cache:', cache);
-            return caches.delete(cache);
-          }
-        })
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
       );
-    }).then(() => {
-      console.log('Service Worker: Aktivierung abgeschlossen, neuer Cache:', CACHE_NAME);
     })
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    caches.match(e.request).then((response) => {
-      if (response) {
-        console.log('Service Worker: Cache-Treffer für:', e.request.url);
-        return response;
-      }
-      console.log('Service Worker: Fetch von Netzwerk:', e.request.url);
-      return fetch(e.request);
-    }).catch(err => {
-      console.error('Service Worker: Fetch-Fehler:', err);
+self.addEventListener('fetch', event => {
+  const url = event.request.url;
+  // Nicht cachen: Sync-API
+  if (url.includes('/v1/sync-api/')) {
+    return;
+  }
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request).catch(() => {
+        if (event.request.mode === 'navigate') {
+          return caches.match('/monitoring-client/monitoring.html');
+        }
+      });
     })
   );
 });
