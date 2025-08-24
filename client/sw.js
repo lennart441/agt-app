@@ -1,24 +1,33 @@
 const CACHE_NAME = 'agt-app-cache-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/client/index.html',
-  '/client/style.css',
-  '/client/logic.js',
-  '/client/ui.js',
-  '/client/overlays.js',
-  '/client/report.js',
-  '/client/manifest.json',
-  '/client/agtler.json',
-  '/client/auftrag.json',
-  '/client/truppnamen.json',
-  '/client/lib/jspdf.umd.min.js',
-  '/client/lib/webdav.min.js',
+  '/v1/client/index.html',
+  '/v1/client/style.css',
+  '/v1/client/logic.js',
+  '/v1/client/ui.js',
+  '/v1/client/overlays.js',
+  '/v1/client/report.js',
+  '/v1/client/manifest.json',
+  '/v1/client/agtler.json',
+  '/v1/client/auftrag.json',
+  '/v1/client/truppnamen.json',
+  '/v1/client/lib/jspdf.umd.min.js',
+  '/v1/client/lib/webdav.min.js',
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
+        console.warn('Cache addAll failed:', err);
+        // Versuche, Assets einzeln zu cachen
+        return Promise.all(
+          ASSETS_TO_CACHE.map(asset =>
+            cache.add(asset).catch(e => {
+              console.warn('Asset konnte nicht gecacht werden:', asset, e);
+            })
+          )
+        );
+      });
     })
   );
 });
@@ -44,7 +53,7 @@ self.addEventListener('fetch', event => {
       return response || fetch(event.request).catch(() => {
         // Fallback: index.html für Navigationsanfragen
         if (event.request.mode === 'navigate') {
-          return caches.match('/client/index.html');
+          return caches.match('/v1/client/index.html');
         }
       });
     })

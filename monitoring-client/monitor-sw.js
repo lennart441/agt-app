@@ -1,15 +1,24 @@
-const CACHE_NAME = 'agt-monitoring-cache-v1';
+const CACHE_NAME = 'agt-monitor-cache-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/monitoring-client/monitoring.html',
-  '/monitoring-client/mon-style.css',
-  '/monitoring-client/monitor.js',
+  '/v1/monitoring-client/monitoring.html',
+  '/v1/monitoring-client/mon-style.css',
+  '/v1/monitoring-client/monitor.js',
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
+        console.warn('Cache addAll failed:', err);
+        // Versuche, Assets einzeln zu cachen
+        return Promise.all(
+          ASSETS_TO_CACHE.map(asset =>
+            cache.add(asset).catch(e => {
+              console.warn('Asset konnte nicht gecacht werden:', asset, e);
+            })
+          )
+        );
+      });
     })
   );
 });
