@@ -23,6 +23,7 @@ function showDruckOverlay(inputId) {
       if (input) input.value = `${wert} bar`;
       closeDruckOverlay();
       if (window.selectDruckForAddMember) window.selectDruckForAddMember(wert);
+      setFakeInputValue(inputId, `${wert} bar`); // Setzt den Wert im .fake-input Feld
     });
     grid.appendChild(btn);
   });
@@ -70,6 +71,7 @@ function showNameOverlay(inputId) {
       if (!inputId.startsWith('tm') && inputId !== 'tf-name' && window.selectCustomNameForAddMember) {
         window.selectCustomNameForAddMember(name);
       }
+      setFakeInputValue(inputId, name); // Setzt den Wert im .fake-input Feld
     });
     grid.appendChild(btn);
   });
@@ -87,6 +89,7 @@ function selectCustomName(inputId) {
   if (customInput.value.trim()) {
     input.value = customInput.value.trim();
     closeNameOverlay();
+    setFakeInputValue(inputId, customInput.value.trim()); // Setzt den Wert im .fake-input Feld
   } else {
     showErrorOverlay("Bitte einen Namen eingeben.");
   }
@@ -119,6 +122,7 @@ function showTruppNameOverlay() {
       const input = document.getElementById('trupp-name-input');
       input.value = name;
       closeTruppNameOverlay();
+      setFakeInputValue('trupp-name-input', name); // Setzt den Wert im .fake-input Feld
     });
     grid.appendChild(btn);
   });
@@ -136,6 +140,7 @@ function selectCustomTruppName() {
   if (customInput.value.trim()) {
     input.value = customInput.value.trim();
     closeTruppNameOverlay();
+    setFakeInputValue('trupp-name-input', customInput.value.trim()); // Setzt den Wert im .fake-input Feld
   } else {
     showErrorOverlay("Bitte einen Truppnamen eingeben.");
   }
@@ -172,6 +177,7 @@ function showMissionOverlay(context, truppId = null) {
         updateMission(truppId, auftrag);
       }
       closeMissionOverlay();
+      setFakeInputValue('trupp-mission-display', auftrag); // Setzt den Wert im .fake-input Feld
     });
     grid.appendChild(btn);
   });
@@ -193,6 +199,7 @@ function selectCustomMission(context, truppId) {
       updateMission(truppId, customInput.value.trim());
     }
     closeMissionOverlay();
+    setFakeInputValue('trupp-mission-display', customInput.value.trim()); // Setzt den Wert im .fake-input Feld
   } else {
     showErrorOverlay("Bitte einen Auftrag eingeben.");
   }
@@ -390,3 +397,25 @@ function closeErrorOverlay() {
   const overlay = document.getElementById('error-overlay');
   if (overlay) overlay.style.display = 'none';
 }
+
+/**
+ * Beispiel für Value-Setzung nach Auswahl:
+ */
+function selectTruppName(name) {
+  setFakeInputValue('trupp-name-input', name);
+  closeTruppNameOverlay();
+}
+function selectMission(mission) {
+  setFakeInputValue('trupp-mission-display', mission);
+  closeMissionOverlay();
+}
+function selectName(id, name) {
+  setFakeInputValue(id, name);
+  closeNameOverlay();
+}
+function selectDruck(id, druck) {
+  setFakeInputValue(id, druck + ' bar');
+  closeDruckOverlay();
+}
+
+// Ergänze die Overlay-Auswahlfunktionen, sodass sie die Werte setzen.

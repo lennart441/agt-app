@@ -14,21 +14,21 @@
       <div class="trupp-form">
         <h2>Trupp erstellen</h2>
         <label>Truppname:</label>
-        <input type="text" id="trupp-name-input" onclick="showTruppNameOverlay()" readonly>
+        <div id="trupp-name-input" class="fake-input" onclick="showTruppNameOverlay()"></div>
         <label>Auftrag:</label>
-        <input type="text" id="trupp-mission-display" onclick="showMissionOverlay('create')" readonly>
+        <div id="trupp-mission-display" class="fake-input" onclick="showMissionOverlay('create')"></div>
         <div id="trupp-members">
           <div class="trupp-member">
             <label>Truppführer Name:</label>
-            <input type="text" id="tf-name" onclick="showNameOverlay('tf-name')" readonly>
+            <div id="tf-name" class="fake-input" onclick="showNameOverlay('tf-name')"></div>
             <label>Druck:</label>
-            <input type="text" id="tf-druck" onclick="showDruckOverlay('tf-druck')" readonly>
+            <div id="tf-druck" class="fake-input" onclick="showDruckOverlay('tf-druck')"></div>
           </div>
           <div class="trupp-member">
             <label>Truppmann 1 Name:</label>
-            <input type="text" id="tm1-name" onclick="showNameOverlay('tm1-name')" readonly>
+            <div id="tm1-name" class="fake-input" onclick="showNameOverlay('tm1-name')"></div>
             <label>Druck:</label>
-            <input type="text" id="tm1-druck" onclick="showDruckOverlay('tm1-druck')" readonly>
+            <div id="tm1-druck" class="fake-input" onclick="showDruckOverlay('tm1-druck')"></div>
           </div>
         </div>
         <button onclick="addTruppMember()">+ Truppmann</button>

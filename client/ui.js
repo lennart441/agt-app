@@ -14,10 +14,29 @@ let selectedMission = '';
 function showTruppForm() {
   const formWrapper = document.getElementById("trupp-form-wrapper");
   formWrapper.style.display = formWrapper.style.display === "none" ? "flex" : "none";
-  document.getElementById("trupp-name-input").value = '';
-  document.getElementById("trupp-mission-display").value = '';
-  document.getElementById("tf-druck").value = '';
-  document.getElementById("tm1-druck").value = '';
+  setFakeInputValue('trupp-name-input', '');
+  setFakeInputValue('trupp-mission-display', '');
+  setFakeInputValue('tf-name', '');
+  setFakeInputValue('tf-druck', '');
+  setFakeInputValue('tm1-name', '');
+  setFakeInputValue('tm1-druck', '');
+  // Mitglieder auf Standard zurücksetzen
+  const membersDiv = document.getElementById("trupp-members");
+  membersDiv.innerHTML = `
+    <div class="trupp-member">
+      <label>Truppführer Name:</label>
+      <div id="tf-name" class="fake-input" onclick="showNameOverlay('tf-name')"></div>
+      <label>Druck:</label>
+      <div id="tf-druck" class="fake-input" onclick="showDruckOverlay('tf-druck')"></div>
+    </div>
+    <div class="trupp-member">
+      <label>Truppmann 1 Name:</label>
+      <div id="tm1-name" class="fake-input" onclick="showNameOverlay('tm1-name')"></div>
+      <label>Druck:</label>
+      <div id="tm1-druck" class="fake-input" onclick="showDruckOverlay('tm1-druck')"></div>
+    </div>
+  `;
+  memberCounter = 2;
   selectedMission = '';
 }
 
@@ -30,9 +49,9 @@ function addTruppMember() {
   newMemberDiv.className = "trupp-member";
   newMemberDiv.innerHTML = `
     <label>Truppmann ${memberCounter} Name:</label>
-    <input type="text" id="tm${memberCounter}-name" onclick="showNameOverlay('tm${memberCounter}-name')" readonly>
+    <div id="tm${memberCounter}-name" class="fake-input" onclick="showNameOverlay('tm${memberCounter}-name')"></div>
     <label>Druck:</label>
-    <input type="text" id="tm${memberCounter}-druck" onclick="showDruckOverlay('tm${memberCounter}-druck')" readonly>
+    <div id="tm${memberCounter}-druck" class="fake-input" onclick="showDruckOverlay('tm${memberCounter}-druck')"></div>
   `;
   membersDiv.appendChild(newMemberDiv);
   memberCounter++;
@@ -202,7 +221,7 @@ function renderTrupp(trupp) {
     <h3>Meldung:</h3>
     ${trupp.members.map((member, index) => `
       <label>Druck ${member.role}:</label>
-      <input type="text" id="meldung-${index}-${trupp.id}" onclick="showDruckOverlay('meldung-${index}-${trupp.id}')">
+      <div id="meldung-${index}-${trupp.id}" class="fake-input" onclick="showDruckOverlay('meldung-${index}-${trupp.id}')"></div>
     `).join('')}
     <label>Notiz:</label>
     <input type="text" id="notiz-${trupp.id}">
@@ -281,6 +300,8 @@ function showNameOverlayForAddMember(truppId) {
   window.selectCustomNameForAddMember = function (name) {
     closeNameOverlay();
     showDruckOverlayForAddMember(truppId, name);
+    // Setze den gewählten Namen in das entsprechende Feld
+    setFakeInputValue(`tm${memberCounter - 1}-name`, name);
   };
 }
 
@@ -292,6 +313,8 @@ function showDruckOverlayForAddMember(truppId, name) {
   window.selectDruckForAddMember = function (druck) {
     closeDruckOverlay();
     addMemberToTrupp(truppId, name, druck);
+    // Setze den gewählten Druck in das entsprechende Feld
+    setFakeInputValue(`tm${memberCounter - 1}-druck`, druck);
   };
 }
 
@@ -406,3 +429,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   loadTruppsFromLocalStorage();
   renderArchivierteTrupps();
 });
+
+function setFakeInputValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value || '';
+}
+// Beispiel: Nach Auswahl im Overlay aufrufen
+// setFakeInputValue('tf-name', 'Max Mustermann');
+// setFakeInputValue('tf-druck', '300 bar');
+// setFakeInputValue('trupp-name-input', 'Trupp 1');
+// setFakeInputValue('trupp-mission-display', 'Brandbekämpfung');

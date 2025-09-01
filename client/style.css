@@ -489,6 +489,7 @@ button:focus, .druck-btn:focus, .name-btn:focus, .mission-btn:focus, input:focus
   }
   #druck-content, #name-content, #mission-content, #truppname-content, #notfall-content {
     max-width: 600px;
+    min-width: 300px;
     width: 95vw;
     padding: 1vw;
   }
@@ -526,5 +527,27 @@ button:focus, .druck-btn:focus, .name-btn:focus, .mission-btn:focus, input:focus
     top: 10px;
     right: 10px;
   }
+}
+
+.fake-input {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  color: #222;
+  font-size: 1em;
+  margin-bottom: 4px;
+  cursor: pointer;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fake-input:empty::before {
+  content: "Bitte auswählen...";
+  color: #aaa;
 }
 
