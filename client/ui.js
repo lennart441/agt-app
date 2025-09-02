@@ -300,8 +300,6 @@ function showNameOverlayForAddMember(truppId) {
   window.selectCustomNameForAddMember = function (name) {
     closeNameOverlay();
     showDruckOverlayForAddMember(truppId, name);
-    // Setze den gewählten Namen in das entsprechende Feld
-    setFakeInputValue(`tm${memberCounter - 1}-name`, name);
   };
 }
 

@@ -22,7 +22,10 @@ function showDruckOverlay(inputId) {
       const input = document.getElementById(inputId);
       if (input) input.value = `${wert} bar`;
       closeDruckOverlay();
-      if (window.selectDruckForAddMember) window.selectDruckForAddMember(wert);
+      if (window.selectDruckForAddMember) {
+        window.selectDruckForAddMember(wert);
+        window.selectDruckForAddMember = null;
+      }
       setFakeInputValue(inputId, `${wert} bar`); // Setzt den Wert im .fake-input Feld
     });
     grid.appendChild(btn);
@@ -70,6 +73,7 @@ function showNameOverlay(inputId) {
       closeNameOverlay();
       if (!inputId.startsWith('tm') && inputId !== 'tf-name' && window.selectCustomNameForAddMember) {
         window.selectCustomNameForAddMember(name);
+        window.selectCustomNameForAddMember = null;
       }
       setFakeInputValue(inputId, name); // Setzt den Wert im .fake-input Feld
     });
