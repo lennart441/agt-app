@@ -9,6 +9,7 @@
 <body>
   <button onclick="showTruppForm()">Neuer Trupp</button>
   <button onclick="uploadToNextcloud()">Bericht erstellen</button>
+  <button onclick="testPressureReminderOverlay()">Test Overlay öffnen</button>
   <div id="main-flex-wrapper" style="display: flex; align-items: flex-start;">
     <div id="trupp-form-wrapper" style="display: none; min-width: 320px; margin-right: 32px;">
       <div class="trupp-form">
@@ -99,6 +100,20 @@
       <button onclick="closeErrorOverlay()" style="margin-top:16px;">Schließen</button>
     </div>
   </div>
+
+  <!-- Druck-Erinnerungs-Overlay -->
+  <div id="pressure-reminder-overlay" class="overlay" style="display: none;">
+    <div class="overlay-content">
+        <h2>Druck-Abfrage erforderlich!</h2>
+        <p>Der Trupp hat 12 Minuten erreicht. Bitte den Druck überprüfen und aktualisieren.</p>
+        <button onclick="closePressureReminderOverlay()">Schließen</button>
+    </div>
+  </div>
+
+  <audio id="alarm-audio" loop>
+    <source src="alarm.mp3" type="audio/mpeg">
+    Ihr Browser unterstützt das Audio-Element nicht.
+  </audio>
 
   <script src="logic.js"></script>
   <script src="report.js"></script>

@@ -6,6 +6,7 @@ const ASSETS_TO_CACHE = [
   '/v1/client/ui.js',
   '/v1/client/overlays.js',
   '/v1/client/report.js',
+  '/v1/client/alarm.mp3',
   '/v1/client/manifest.json',
   '/v1/client/agtler.json',
   '/v1/client/auftrag.json',

@@ -251,6 +251,13 @@ function createTrupp() {
     return;
   }
 
+  // Validate that all members have at least 270 bar
+  const invalidMembers = members.filter(member => member.druck < 270);
+  if (invalidMembers.length > 0) {
+    showErrorOverlay("Alle Truppmitglieder müssen mindestens 270 bar haben.");
+    return;
+  }
+
   const trupp = {
     id: truppIdCounter++,
     name: truppName,
@@ -265,6 +272,10 @@ function createTrupp() {
     intervalRef: null,
     notfallAktiv: false
   };
+  // Bei Trupp-Initialisierung oder -Erstellung:
+  if (trupp.timer === null || trupp.timer === undefined) {
+    trupp.timer = 0; // Initialisiere auf 0 ms
+  }
   trupps.push(trupp);
   renderTrupp(trupp);
   document.getElementById('trupp-form-wrapper').style.display = 'none';
@@ -313,6 +324,16 @@ function startTimer(trupp) {
       card.classList.remove("alarmphase");
     } else {
       card.classList.remove("warnphase", "alarmphase");
+    }
+
+    // Neue Bedingung: Nach 12 Minuten das Druck-Erinnerungs-Overlay öffnen
+    console.log('Trupp Timer:', trupp.timer, 'Bedingung erreicht?', trupp.timer >= 12 * 60 * 1000);
+    // Optional: Wenn Timer in Sekunden läuft, verwende diese Bedingung stattdessen:
+    // if (trupp.timer >= 12 * 60 && !trupp.pressureReminderShown) { // 12 Minuten in Sekunden
+    if (trupp.timer >= 12 * 60 * 1000 && !trupp.pressureReminderShown) { // 12 Minuten in ms
+      console.log('Overlay wird geöffnet für Trupp:', trupp.id);
+      showPressureReminderOverlay(trupp.id);
+      trupp.pressureReminderShown = true; // Flag setzen
     }
   }, 1000);
 }

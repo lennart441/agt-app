@@ -423,3 +423,30 @@ function selectDruck(id, druck) {
 }
 
 // Ergänze die Overlay-Auswahlfunktionen, sodass sie die Werte setzen.
+
+function showPressureReminderOverlay(truppId) {
+    const overlay = document.getElementById('pressure-reminder-overlay');
+    if (overlay.style.display === 'none' || overlay.style.display === '') {
+        overlay.style.display = 'block';
+        const audio = document.getElementById('alarm-audio');
+        audio.play();
+    }
+}
+
+/**
+ * Schließt das Pressure-Reminder-Overlay.
+ */
+function closePressureReminderOverlay() {
+    const overlay = document.getElementById('pressure-reminder-overlay');
+    overlay.style.display = 'none';
+    const audio = document.getElementById('alarm-audio');
+    audio.pause();
+    audio.currentTime = 0; // Zurück zum Anfang
+}
+
+/**
+ * Test-Funktion zum manuellen Triggern des Pressure-Reminder-Overlays.
+ */
+function testPressureReminderOverlay() {
+    showPressureReminderOverlay('test-trupp'); // Verwende eine Dummy-ID für Test
+}
