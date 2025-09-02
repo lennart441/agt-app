@@ -316,6 +316,9 @@ function startTimer(trupp) {
     const sec = (vergangen % 60).toString().padStart(2, '0');
     timerDiv.textContent = `Zeit seit letzter Meldung: ${min}:${sec}`;
 
+    // Aktualisiere trupp.timer mit der vergangenen Zeit in ms
+    trupp.timer = vergangen * 1000;
+
     if (vergangen > 600) {
       card.classList.remove("warnphase");
       card.classList.add("alarmphase");
@@ -327,11 +330,11 @@ function startTimer(trupp) {
     }
 
     // Neue Bedingung: Nach 12 Minuten das Druck-Erinnerungs-Overlay öffnen
-    console.log('Trupp Timer:', trupp.timer, 'Bedingung erreicht?', trupp.timer >= 12 * 60 * 1000);
+    // console.log('Trupp Timer:', trupp.timer, 'Bedingung erreicht?', trupp.timer >= 12 * 60 * 1000);
     // Optional: Wenn Timer in Sekunden läuft, verwende diese Bedingung stattdessen:
     // if (trupp.timer >= 12 * 60 && !trupp.pressureReminderShown) { // 12 Minuten in Sekunden
     if (trupp.timer >= 12 * 60 * 1000 && !trupp.pressureReminderShown) { // 12 Minuten in ms
-      console.log('Overlay wird geöffnet für Trupp:', trupp.id);
+      // console.log('Overlay wird geöffnet für Trupp:', trupp.id);
       showPressureReminderOverlay(trupp.id);
       trupp.pressureReminderShown = true; // Flag setzen
     }
