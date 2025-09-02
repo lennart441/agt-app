@@ -418,10 +418,9 @@ function meldung(id) {
  * Markiert einen Trupp als abgelegt und speichert dies
  */
 function ablegen(trupp) {
-  // Neue Druckwerte aus dem Meldungsformular holen
+  // Neue Druckwerte aus dem Meldungsformular holen (konsistent mit meldung Funktion)
   const druckInputs = trupp.members.map((_, index) => {
-    const druckInput = document.getElementById(`meldung-${index}-${trupp.id}`);
-    const druckValue = druckInput ? druckInput.value.replace(' bar', '').trim() : '';
+    const druckValue = getMeldungDruckValue(`meldung-${index}-${trupp.id}`);
     return {
       druck: druckValue === '' ? null : parseInt(druckValue),
       role: index === 0 ? "TF" : `TM${index}`
@@ -452,6 +451,7 @@ function ablegen(trupp) {
 
   if (trupp.intervalRef) clearInterval(trupp.intervalRef);
   trupp.startZeit = null; // Reset startZeit to indicate trupp is not active
+  trupp.inaktiv = true; // Mark as inactive
   const zeit = new Date().toLocaleTimeString();
   trupp.meldungen.push({ kommentar: `${zeit}: Trupp hat abgelegt`, members: druckInputs });
   //zeigeMeldungen(trupp);
