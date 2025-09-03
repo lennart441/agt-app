@@ -23,6 +23,7 @@ window.saveTrupp = function(trupp) {
         trupps.push(trupp);
     }
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(trupps));
+    if (typeof renderAllTrupps === 'function') renderAllTrupps();
 }
 
 window.getTrupp = function(id) {
@@ -36,6 +37,7 @@ window.updateTrupp = function(id, changes) {
     if (idx >= 0) {
         trupps[idx] = { ...trupps[idx], ...changes };
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(trupps));
+        if (typeof renderAllTrupps === 'function') renderAllTrupps();
         return trupps[idx];
     }
     return null;
@@ -45,6 +47,7 @@ window.deleteTrupp = function(id) {
     let trupps = window.getAllTrupps();
     trupps = trupps.filter(t => t.id !== id);
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(trupps));
+    if (typeof renderAllTrupps === 'function') renderAllTrupps();
 }
 
 window.addMeldungToTrupp = function(id, meldung) {
@@ -53,6 +56,7 @@ window.addMeldungToTrupp = function(id, meldung) {
         trupp.meldungen = trupp.meldungen || [];
         trupp.meldungen.push(meldung);
         window.saveTrupp(trupp);
+        if (typeof renderAllTrupps === 'function') renderAllTrupps();
     }
 }
 
@@ -62,5 +66,6 @@ window.addMemberToTrupp = function(id, member) {
         trupp.members = trupp.members || [];
         trupp.members.push(member);
         window.saveTrupp(trupp);
+        if (typeof renderAllTrupps === 'function') renderAllTrupps();
     }
 }

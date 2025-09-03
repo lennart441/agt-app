@@ -70,7 +70,10 @@ function setupMeldungInput(id) {
 function renderAllTrupps() {
   const container = document.getElementById("trupp-container");
   container.innerHTML = "";
-  window.getAllTrupps().filter(t => !t.inaktiv).forEach(renderTrupp);
+  // Hole IMMER die aktuellen Truppdaten aus Local Storage
+  window.getAllTrupps().filter(t => !t.inaktiv).forEach(trupp => {
+    renderTrupp(trupp);
+  });
 }
 
 /**
@@ -80,31 +83,13 @@ function renderAllTrupps() {
 function renderTrupp(trupp) {
   const container = document.getElementById("trupp-container");
   let card = document.getElementById(`trupp-${trupp.id}`);
-  // Button-, Timer- und Intervall-Zustände merken
-  let buttonStates = {};
-  let timerText = "";
-  let savedStartZeit = trupp.startZeit;
-  let savedIntervalRef = trupp.intervalRef;
-  if (card) {
-    const btns = card.querySelectorAll('button');
-    btns.forEach(btn => {
-      if (btn.textContent === "Trupp legt an") buttonStates.start = btn.style.display;
-      if (btn.textContent === "Trupp legt ab") buttonStates.ablegen = btn.style.display;
-      if (btn.textContent === "Trupp auflösen") buttonStates.loeschen = btn.style.display;
-      if (btn.textContent === "Auftrag ändern") buttonStates.changeMission = btn.style.display;
-    });
-    const notfallBtn = card.querySelector('.notfall-btn');
-    if (notfallBtn) buttonStates.notfall = notfallBtn.style.display;
-    const timerDiv = card.querySelector(`#timer-${trupp.id}`);
-    if (timerDiv) timerText = timerDiv.textContent;
-  }
   if (!card) {
     card = document.createElement("div");
     card.className = "trupp-card";
     card.id = `trupp-${trupp.id}`;
     container.appendChild(card);
   } else {
-    card.innerHTML = ""; // Bestehende Karte leeren, um sie neu zu rendern
+    card.innerHTML = "";
   }
 
   const title = document.createElement("h2");
@@ -149,74 +134,50 @@ function renderTrupp(trupp) {
   const startButton = document.createElement("button");
   startButton.textContent = "Trupp legt an";
   startButton.onclick = () => {
-    startButton.style.display = "none";
-    ablegenBtn.style.display = "inline";
-    notfallBtn.style.display = "inline";
-    loeschenBtn.style.display = "none";
-    // Button 'Mitglied hinzufügen' entfernen
-    const addMemberBtnRemove = card.querySelector('.add-member-btn');
-    if (addMemberBtnRemove) addMemberBtnRemove.remove();
-    startTimer(trupp);
-    const startKommentar = `Angelegt um ${new Date().toLocaleTimeString()}`;
-    trupp.meldungen.push({ kommentar: startKommentar, members: trupp.members.map(m => ({ role: m.role, druck: m.druck })) });
-    zeigeMeldungen(trupp);
+    handleTruppStart(trupp);
   };
   card.appendChild(startButton);
 
   const ablegenBtn = document.createElement("button");
   ablegenBtn.textContent = "Trupp legt ab";
-  ablegenBtn.style.display = "none";
   ablegenBtn.onclick = () => {
-    if (ablegen(trupp)) {
-      startButton.style.display = "inline";
-      ablegenBtn.style.display = "none";
-      notfallBtn.style.display = "none";
-      loeschenBtn.style.display = "inline";
-      // Druckfelder leeren
-      trupp.members.forEach((_, index) => {
-        const druckInput = document.getElementById(`meldung-${index}-${trupp.id}`);
-        if (druckInput) druckInput.value = '';
-      });
-      updateTruppCard(trupp); // Druckanzeige und Grafik aktualisieren
+    const now = Date.now();
+    let errorMsg = "";
+    let druckChanged = false;
+    const updatedMembers = trupp.members.map((m, idx) => {
+      const druckDiv = document.getElementById(`meldung-${idx}-${trupp.id}`);
+      const enteredDruck = druckDiv ? parseInt(druckDiv.textContent.trim()) : undefined;
+      if (enteredDruck === undefined || isNaN(enteredDruck)) {
+        errorMsg += `${m.name}: Es muss ein gültiger Druck für jedes Mitglied eingegeben werden.\n`;
+      } else if (enteredDruck > m.druck) {
+        errorMsg += `${m.name}: Neuer Druck (${enteredDruck}) darf nicht höher als aktueller Druck (${m.druck}) sein.\n`;
+      }
+      if (!isNaN(enteredDruck) && enteredDruck !== m.druck) druckChanged = true;
+      return { ...m, druck: (!isNaN(enteredDruck) ? enteredDruck : m.druck) };
+    });
+    if (errorMsg) {
+      if (typeof showErrorOverlay === 'function') showErrorOverlay(errorMsg.trim());
+      return;
     }
+    window.updateTruppData(trupp.id, { members: updatedMembers, startZeit: null, lastMeldungZeit: null });
+    window.addMeldungForTrupp(trupp.id, { kommentar: `Trupp legt ab (${new Date(now).toLocaleTimeString()})`, members: updatedMembers, zeit: now });
   };
   card.appendChild(ablegenBtn);
 
   const notfallBtn = document.createElement("button");
   notfallBtn.className = "notfall-btn";
   notfallBtn.textContent = trupp.notfallAktiv ? "AGT Notfall beenden" : "AGT Notfall";
-  notfallBtn.style.display = trupp.inaktiv ? "none" : "inline";
-  notfallBtn.onclick = () => showNotfallOverlay(trupp.id, trupp.notfallAktiv);
+  notfallBtn.onclick = () => {
+    showNotfallOverlay(trupp.id, trupp.notfallAktiv);
+  };
   card.appendChild(notfallBtn);
 
   const loeschenBtn = document.createElement("button");
   loeschenBtn.textContent = "Trupp auflösen";
-  loeschenBtn.style.display = trupp.inaktiv ? "none" : "inline"; // Hide for inactive trupps by default
   loeschenBtn.onclick = () => {
-    trupp.inaktiv = true;
-    if (trupp.intervalRef) clearInterval(trupp.intervalRef);
-    card.classList.remove("warnphase", "alarmphase", "aktiv");
-    card.classList.add("inaktiv");
-    const meldungForm = document.getElementById(`meldung-form-${trupp.id}`);
-    const inputs = meldungForm.querySelectorAll("select, input, button");
-    inputs.forEach(input => input.style.display = "none");
-    startButton.style.display = "none";
-    ablegenBtn.style.display = "none";
-    notfallBtn.style.display = "none";
-    loeschenBtn.style.display = "none"; // Hide after dissolving
-    changeMissionBtn.style.display = "none"; // Hide "Auftrag ändern" for inactive trupps
-    saveTruppsToLocalStorage(); // Save to Local Storage when trupp is dissolved
-    // Karte aus trupp-container entfernen
-    card.remove();
-    // Im Archiv anzeigen
-    renderArchivTrupp(trupp);
+    window.dissolveTrupp(trupp.id);
   };
   card.appendChild(loeschenBtn);
-
-  const timerDiv = document.createElement("div");
-  timerDiv.id = `timer-${trupp.id}`;
-  timerDiv.className = 'timer-bold';
-  card.appendChild(timerDiv);
 
   // Separator for meldungen
   const separator = document.createElement('div');
@@ -257,6 +218,54 @@ function renderTrupp(trupp) {
     setupMeldungInput(`meldung-${index}-${trupp.id}`);
   });
   card.classList.add(trupp.inaktiv ? "inaktiv" : "aktiv");
+  if (trupp.notfallAktiv) {
+    card.classList.add("notfall");
+  } else {
+    card.classList.remove("notfall");
+  }
+
+  // Timer-UI wie v1: Live-Anzeige, Minuten:Sekunden, jede Sekunde aktualisieren
+  let timerDiv = card.querySelector(`#timer-${trupp.id}`);
+  if (!timerDiv) {
+    timerDiv = document.createElement("div");
+    timerDiv.id = `timer-${trupp.id}`;
+    timerDiv.className = 'timer-bold';
+    card.appendChild(timerDiv);
+  }
+  let diff = 0;
+  if (!trupp.inaktiv && trupp.startZeit) {
+    let baseTime = trupp.startZeit;
+    if (trupp.lastMeldungZeit && trupp.lastMeldungZeit > trupp.startZeit) {
+      baseTime = trupp.lastMeldungZeit;
+    }
+    function updateTimer() {
+      const now = Date.now();
+      diff = Math.floor((now - baseTime) / 1000); // Sekunden seit letzter Meldung
+      const min = Math.floor(diff / 60);
+      const sec = Math.floor((diff % 60));
+      timerDiv.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+      // CSS-Klassen für warnphase und alarmphase
+      card.classList.remove('warnphase', 'alarmphase');
+      if (diff >= 600) {
+        card.classList.add('alarmphase');
+      } else if (diff >= 540) {
+        card.classList.add('warnphase');
+      }
+    }
+    updateTimer();
+    if (timerDiv._interval) clearInterval(timerDiv._interval);
+    timerDiv._interval = setInterval(updateTimer, 1000);
+  } else {
+    timerDiv.textContent = "";
+    if (timerDiv._interval) clearInterval(timerDiv._interval);
+    card.classList.remove('warnphase', 'alarmphase');
+  }
+
+  // Low-pressure-Logik
+  card.classList.remove('low-pressure');
+  if (trupp.members.some(m => m.druck <= 50)) {
+    card.classList.add('low-pressure');
+  }
 
   if (trupp.inaktiv) {
     startButton.style.display = "none";
@@ -270,25 +279,45 @@ function renderTrupp(trupp) {
     zeigeMeldungen(trupp);
   }
 
-  // Nach dem Rendern die Button- und Timer-Zustände wiederherstellen
-  const btns = card.querySelectorAll('button');
-  btns.forEach(btn => {
-    if (btn.textContent === "Trupp legt an" && buttonStates.start !== undefined) btn.style.display = buttonStates.start;
-    if (btn.textContent === "Trupp legt ab" && buttonStates.ablegen !== undefined) btn.style.display = buttonStates.ablegen;
-    if (btn.textContent === "Trupp auflösen" && buttonStates.loeschen !== undefined) btn.style.display = buttonStates.loeschen;
-    if (btn.textContent === "Auftrag ändern" && buttonStates.changeMission !== undefined) btn.style.display = buttonStates.changeMission;
-  });
-  const notfallBtnRestore = card.querySelector('.notfall-btn');
-  if (notfallBtnRestore && buttonStates.notfall !== undefined) notfallBtnRestore.style.display = buttonStates.notfall;
-  const timerDivRestore = card.querySelector(`#timer-${trupp.id}`);
-  if (timerDivRestore && timerText) timerDivRestore.textContent = timerText;
-  // Timer- und Intervall-Zustände zurücksetzen
-  trupp.startZeit = savedStartZeit;
-  trupp.intervalRef = savedIntervalRef;
-  // Timer-Intervall nur setzen, wenn noch keins läuft und startZeit existiert
-  if (!trupp.inaktiv && trupp.startZeit && !trupp.intervalRef) {
-    startTimer(trupp);
+  // Button-Display-Logik NUR nach Local Storage Zustand
+  if (!trupp.inaktiv) {
+    if (trupp.startZeit) {
+      startButton.style.display = "none";
+      ablegenBtn.style.display = "inline";
+      loeschenBtn.style.display = "inline";
+      notfallBtn.textContent = trupp.notfallAktiv ? "AGT Notfall beenden" : "AGT Notfall";
+      notfallBtn.style.display = "inline";
+    } else {
+      startButton.style.display = "inline";
+      ablegenBtn.style.display = "none";
+      notfallBtn.style.display = "none";
+      loeschenBtn.style.display = "inline";
+    }
+  } else {
+    startButton.style.display = "none";
+    ablegenBtn.style.display = "none";
+    notfallBtn.style.display = "none";
+    loeschenBtn.style.display = "none";
   }
+
+  // Meldungen chronologisch unter dem Button anzeigen
+  const meldungenDiv = document.createElement('div');
+  meldungenDiv.className = 'meldungen-list';
+  meldungenDiv.innerHTML = '<h4>Meldungen:</h4>';
+  if (Array.isArray(trupp.meldungen)) {
+    [...trupp.meldungen].reverse().forEach(m => {
+      const p = document.createElement('p');
+      let msg = '';
+      if (m.zeit) msg += `[${new Date(m.zeit).toLocaleTimeString()}] `;
+      msg += m.kommentar || '';
+      if (Array.isArray(m.members) && m.members.length) {
+        msg += ' (' + m.members.map(mem => `${mem.role}: ${mem.druck} bar`).join(', ') + ')';
+      }
+      p.textContent = msg;
+      meldungenDiv.appendChild(p);
+    });
+  }
+  card.appendChild(meldungenDiv);
 }
 
 /**
@@ -400,4 +429,198 @@ function setFakeInputValue(id, value) {
 
 window.showTruppForm = showTruppForm;
 window.addTruppMember = addTruppMember;
-window.createTrupp = createTrupp;
+window.createTrupp = function() {
+  // Truppdaten aus dem Formular sammeln
+  const name = document.getElementById('trupp-name-input').textContent.trim();
+  const mission = document.getElementById('trupp-mission-display').textContent.trim();
+  const members = [];
+  // Truppführer
+  members.push({
+    name: document.getElementById('tf-name').textContent.trim(),
+    druck: parseInt(document.getElementById('tf-druck').textContent.trim()) || '',
+    role: 'TF'
+  });
+  // Truppmann 1
+  members.push({
+    name: document.getElementById('tm1-name').textContent.trim(),
+    druck: parseInt(document.getElementById('tm1-druck').textContent.trim()) || '',
+    role: 'TM1'
+  });
+  // Weitere Mitglieder falls vorhanden
+  for (let i = 2; i < memberCounter; i++) {
+    const nameEl = document.getElementById(`tm${i}-name`);
+    const druckEl = document.getElementById(`tm${i}-druck`);
+    if (nameEl && druckEl) {
+      members.push({
+        name: nameEl.textContent.trim(),
+        druck: parseInt(druckEl.textContent.trim()) || '',
+        role: `TM${i}`
+      });
+    }
+  }
+  // Neues Trupp-Objekt
+  const trupp = {
+    id: Date.now(),
+    name,
+    mission,
+    members,
+    meldungen: [],
+    inaktiv: false,
+    notfallAktiv: false
+  };
+  window.saveTrupp(trupp); // Speichern im Local Storage
+  renderAllTrupps(); // UI neu rendern
+  // Formular schließen
+  document.getElementById('trupp-form-wrapper').style.display = 'none';
+};
+
+window.updateTruppData = function(truppId, changes) {
+  const updated = window.updateTrupp(truppId, changes); // Speichern im Local Storage
+  renderAllTrupps(); // UI neu rendern
+  return updated;
+};
+// Beispiel für die Nutzung:
+// window.updateTruppData(truppId, { mission: 'Neuer Auftrag' });
+
+// Auftrag ändern Button:
+// changeMissionBtn.onclick = () => {
+//   showMissionOverlay('update', trupp.id);
+//   // Nach Auswahl im Overlay:
+//   // window.updateTruppData(trupp.id, { mission: neuerWert });
+// };
+
+// Notfall Button:
+// notfallBtn.onclick = () => {
+//   window.updateTruppData(trupp.id, { notfallAktiv: !trupp.notfallAktiv });
+//   showNotfallOverlay(trupp.id, !trupp.notfallAktiv);
+// };
+
+// Mitglied hinzufügen:
+// addMemberToTrupp(truppId, name, druck) =>
+//   window.updateTruppData(truppId, { members: [...trupp.members, { name, druck, role: ... }] });
+
+// Trupp auflösen:
+// loeschenBtn.onclick = () => {
+//   window.updateTruppData(trupp.id, { inaktiv: true });
+//   // Archiv-Render etc.
+// };
+
+// Auftrag ändern Overlay Callback
+window.setMissionForTrupp = function(truppId, mission) {
+  const trupp = window.getTrupp(truppId);
+  if (!mission || typeof mission !== 'string' || mission.length < 2 || !trupp) return;
+  const oldMission = trupp.mission || '';
+  window.updateTruppData(truppId, { mission });
+  window.addMeldungForTrupp(truppId, { kommentar: `Neuer Auftrag: ${oldMission} → ${mission}`, zeit: Date.now() });
+};
+
+// Notfall aktivieren/beenden
+window.toggleNotfallForTrupp = function(truppId, aktiv) {
+  window.updateTruppData(truppId, { notfallAktiv: aktiv });
+  window.addMeldungForTrupp(truppId, { kommentar: aktiv ? 'AGT Notfall aktiviert' : 'AGT Notfall beendet', zeit: Date.now() });
+};
+
+// Druck/Meldung erfassen
+window.addMeldungForTrupp = function(truppId, meldung) {
+  if (!meldung || typeof meldung !== 'object') return;
+  const trupp = window.getTrupp(truppId);
+  if (!trupp) return;
+  // Nur members setzen, wenn im Meldungsobjekt vorhanden
+  if (meldung.members) {
+    meldung.members = meldung.members.map(m => ({ role: m.role, druck: m.druck }));
+  }
+  trupp.meldungen = trupp.meldungen || [];
+  trupp.meldungen.push(meldung);
+  window.updateTruppData(truppId, { meldungen: trupp.meldungen });
+};
+
+// Mitglied hinzufügen
+window.addMemberToTrupp = function(truppId, name, druck) {
+  if (!name || typeof name !== 'string' || name.length < 2) return;
+  if (!druck || isNaN(druck) || druck < 10 || druck > 320) return;
+  const trupp = window.getTrupp(truppId);
+  if (!trupp) return;
+  const nextRole = `TM${trupp.members.length}`;
+  const newMember = { name, druck, role: nextRole };
+  const updatedMembers = [...trupp.members, newMember];
+  window.updateTruppData(truppId, { members: updatedMembers });
+};
+
+// Trupp auflösen
+window.dissolveTrupp = function(truppId) {
+  window.updateTruppData(truppId, { inaktiv: true });
+  if (typeof renderAllTrupps === 'function') renderAllTrupps();
+  if (typeof renderArchivierteTrupps === 'function') renderArchivierteTrupps();
+};
+
+// Mitgliedsdaten ändern
+window.updateMemberForTrupp = function(truppId, memberIndex, changes) {
+  const trupp = window.getTrupp(truppId);
+  if (!trupp || !trupp.members[memberIndex]) return;
+  const updatedMembers = [...trupp.members];
+  updatedMembers[memberIndex] = { ...updatedMembers[memberIndex], ...changes };
+  window.updateTruppData(truppId, { members: updatedMembers });
+};
+
+// Trupp legt an Button-Logik
+function handleTruppStart(trupp) {
+  const now = Date.now();
+  window.updateTruppData(trupp.id, {
+    startZeit: now,
+    lastMeldungZeit: now
+  });
+  window.addMeldungForTrupp(trupp.id, { kommentar: `Trupp legt an (${new Date(now).toLocaleTimeString()})`, zeit: now });
+}
+
+function meldung(truppId) {
+  const trupp = window.getTrupp(truppId);
+  if (!trupp) return;
+  const now = Date.now();
+  const notiz = document.getElementById(`notiz-${truppId}`)?.value.trim() || "";
+  let druckGeaendert = false;
+  let errorMsg = "";
+  const updatedMembers = trupp.members.map((m, idx) => {
+    const druckDiv = document.getElementById(`meldung-${idx}-${truppId}`);
+    const enteredDruck = druckDiv ? druckDiv.textContent.trim() : "";
+    const druckNum = parseInt(enteredDruck);
+    if (enteredDruck !== "" && (isNaN(druckNum) || druckNum > m.druck)) {
+      errorMsg += `${m.name}: Es muss ein gültiger Druck ≤ aktueller Druck eingegeben werden.\n`;
+    }
+    if (enteredDruck !== "" && !isNaN(druckNum) && druckNum !== m.druck) {
+      druckGeaendert = true;
+    }
+    return { ...m, druck: (!isNaN(druckNum) ? druckNum : m.druck) };
+  });
+
+  console.log('[DEBUG] Druck geändert:', druckGeaendert);
+  console.log('[DEBUG] Notiz eingegeben:', !!notiz, 'Inhalt:', notiz);
+
+  // Fall 1: Mindestens ein Druck geändert
+  if (druckGeaendert) {
+    console.log('[DEBUG] Verfahre: Druckmeldung' + (notiz ? ' + Notiz' : ''));
+    if (errorMsg) {
+      if (typeof showErrorOverlay === 'function') showErrorOverlay(errorMsg.trim());
+      return;
+    }
+    window.updateTruppData(truppId, { members: updatedMembers, lastMeldungZeit: now });
+    let kommentar = 'Druckmeldung';
+    if (notiz) kommentar += `; Notiz: ${notiz}`;
+    window.addMeldungForTrupp(truppId, {
+      kommentar,
+      members: updatedMembers,
+      zeit: now
+    });
+    document.getElementById(`notiz-${truppId}`).value = "";
+    return;
+  }
+
+  // Fall 2: Keine Drücke geändert, aber Notiz vorhanden
+  if (!druckGeaendert && notiz) {
+    console.log('[DEBUG] Verfahre: Nur Notizmeldung');
+    window.addMeldungForTrupp(truppId, { kommentar: `Notiz: ${notiz}`, zeit: now });
+    document.getElementById(`notiz-${truppId}`).value = "";
+    return;
+  }
+
+  console.log('[DEBUG] Verfahre: Keine Meldung, da weder Druck noch Notiz geändert.');
+}

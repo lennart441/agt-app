@@ -450,3 +450,12 @@ function closePressureReminderOverlay() {
 function testPressureReminderOverlay() {
     showPressureReminderOverlay('test-trupp'); // Verwende eine Dummy-ID für Test
 }
+
+/**
+ * Bestätigungsfunktion für das Notfall-Overlay: Status ändern, Meldung erstellen, UI neu rendern.
+ */
+function confirmNotfall(truppId, isEndNotfall) {
+  window.toggleNotfallForTrupp(truppId, !isEndNotfall);
+  closeNotfallOverlay();
+  if (typeof renderAllTrupps === 'function') renderAllTrupps();
+}
