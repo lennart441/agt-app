@@ -1,4 +1,4 @@
-// Erstellt und lädt ein PDF mit allen inaktiven Trupps und deren Meldungen und lädt es zu Nextcloud hoch
+// Alle Funktionen werden als window-Funktionen verwendet
 async function uploadToNextcloud() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -31,7 +31,7 @@ async function uploadToNextcloud() {
   renderWrappedText(`Erstellt am: ${timestamp}`, 20, yOffset, 12);
   yOffset += 10; // Extra spacing after header
 
-  const inactiveTrupps = trupps.filter(t => t.inaktiv);
+  const inactiveTrupps = window.getAllTrupps().filter(t => t.inaktiv);
   if (inactiveTrupps.length === 0) {
     alert("Keine aufgelösten Trupps zum Senden.");
     return;
@@ -85,11 +85,13 @@ async function uploadToNextcloud() {
     alert(`Fehler beim Hochladen des Berichts: ${error.message}`);
   }
 }
+window.uploadToNextcloud = uploadToNextcloud;
 
 // Löscht alle inaktiven Trupps aus dem Speicher und entfernt sie aus dem UI
 function clearTrupps() {
-  const inactiveTrupps = trupps.filter(t => t.inaktiv);
+  const inactiveTrupps = window.getAllTrupps().filter(t => t.inaktiv);
   inactiveTrupps.forEach(t => {
+    deleteTrupp(t.id);
     const card = document.getElementById(`trupp-${t.id}`);
     if (card) card.remove();
   });

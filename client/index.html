@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <button onclick="showTruppForm()">Neuer Trupp</button>
-  <button onclick="uploadToNextcloud()">Bericht erstellen</button>
+  <button onclick="window.showTruppForm()">Neuer Trupp</button>
+  <button onclick="window.uploadToNextcloud()">Bericht erstellen</button>
   <!-- <button onclick="testPressureReminderOverlay()">Test Overlay öffnen</button> -->
   <div id="main-flex-wrapper" style="display: flex; align-items: flex-start;">
     <div id="trupp-form-wrapper" style="display: none; min-width: 320px; margin-right: 32px;">
@@ -32,8 +32,8 @@
             <div id="tm1-druck" class="fake-input" onclick="showDruckOverlay('tm1-druck')"></div>
           </div>
         </div>
-        <button onclick="addTruppMember()">+ Truppmann</button>
-        <button onclick="createTrupp()">Trupp erstellen</button>
+        <button onclick="window.addTruppMember()">+ Truppmann</button>
+        <button onclick="window.createTrupp()">Trupp erstellen</button>
       </div>
     </div>
     <div style="display: flex; flex-direction: row; gap: 24px;">
@@ -119,6 +119,7 @@
   <script src="report.js"></script>
   <script src="ui.js"></script>
   <script src="overlays.js"></script>
+  <script src="localStorage.js"></script>
   <script src="lib/jspdf.umd.min.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

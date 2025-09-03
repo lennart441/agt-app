@@ -181,7 +181,7 @@ function showMissionOverlay(context, truppId = null) {
         updateMission(truppId, auftrag);
       }
       closeMissionOverlay();
-      setFakeInputValue('trupp-mission-display', auftrag); // Setzt den Wert im .fake-input Feld
+      setFakeInputValue('trupp-mission-display', auftrag);
     });
     grid.appendChild(btn);
   });
@@ -319,29 +319,29 @@ function addTokenButton() {
  * Öffnet das Overlay zum Hinzufügen eines Mitglieds.
  */
 function openOverlay(type, truppId) {
-    if (type === 'add-member') {
-        // Overlay für Name und Druck anzeigen
-        document.getElementById('add-member-overlay').style.display = 'block';
-        // Name-Feld: Vorschlagsliste wie bei showNameOverlay
-        const nameInput = document.getElementById('add-member-name');
-        nameInput.onclick = function() {
-            showNameOverlay('add-member-name');
-        };
-        // Druck-Feld: Vorschlagsliste wie bei showDruckOverlay
-        const druckInput = document.getElementById('add-member-druck');
-        druckInput.onclick = function() {
-            showDruckOverlay('add-member-druck');
-        };
-        // Bestätigungs-Button
-        document.getElementById('add-member-confirm').onclick = function() {
-            const name = nameInput.value;
-            const druck = parseInt(druckInput.value, 10);
-            addMemberToTrupp(truppId, name, druck); // Ruft jetzt die zentrale Funktion aus logic.js auf
-            document.getElementById('add-member-overlay').style.display = 'none';
-            nameInput.value = '';
-            druckInput.value = '';
-        };
-    }
+  if (type === 'add-member') {
+    // Overlay für Name und Druck anzeigen
+    document.getElementById('add-member-overlay').style.display = 'block';
+    // Name-Feld: Vorschlagsliste wie bei showNameOverlay
+    const nameInput = document.getElementById('add-member-name');
+    nameInput.onclick = function() {
+      showNameOverlay('add-member-name');
+    };
+    // Druck-Feld: Vorschlagsliste wie bei showDruckOverlay
+    const druckInput = document.getElementById('add-member-druck');
+    druckInput.onclick = function() {
+      showDruckOverlay('add-member-druck');
+    };
+    // Bestätigungs-Button
+    document.getElementById('add-member-confirm').onclick = function() {
+      const name = nameInput.value;
+      const druck = parseInt(druckInput.value, 10);
+      addMemberToTrupp(truppId, { name, druck, role: `TM${getTrupp(truppId).members.length}` });
+      document.getElementById('add-member-overlay').style.display = 'none';
+      nameInput.value = '';
+      druckInput.value = '';
+    };
+  }
 }
 
 // Escape schließt Overlays

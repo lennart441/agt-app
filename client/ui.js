@@ -3,9 +3,8 @@
 // Steuert die Darstellung, Interaktion und Aktualisierung der Truppkarten im Haupt-UI
 // Overlay-Interaktionen werden an overlays.js delegiert
 
-// Zählt die Anzahl der Mitglieder im Trupp-Formular
+// Alle Funktionen werden als window-Funktionen verwendet
 let memberCounter = 2;
-// Speichert den aktuell ausgewählten Auftrag
 let selectedMission = '';
 
 /**
@@ -63,6 +62,15 @@ function addTruppMember() {
 function setupMeldungInput(id) {
   const input = document.getElementById(id);
   input.addEventListener('click', () => showDruckOverlay(id));
+}
+
+/**
+ * Rendert alle Trupps im UI.
+ */
+function renderAllTrupps() {
+  const container = document.getElementById("trupp-container");
+  container.innerHTML = "";
+  window.getAllTrupps().filter(t => !t.inaktiv).forEach(renderTrupp);
 }
 
 /**
@@ -320,57 +328,7 @@ function showDruckOverlayForAddMember(truppId, name) {
  * Aktualisiert die Trupp-Karte (z.B. nach einer Meldung oder Notfall).
  */
 function updateTruppCard(trupp) {
-  const card = document.getElementById(`trupp-${trupp.id}`);
-  if (!card) return;
-
-  // Update pressure info
-  const agtInfo = document.getElementById(`info-${trupp.id}`);
-  if (agtInfo) {
-    agtInfo.innerHTML = trupp.members
-      .map(m => `${m.role === "TF" ? "Truppführer" : `Truppmann ${m.role.slice(2)}`}: ${m.name} (${m.druck} bar)`)
-      .join("<br>");
-  }
-
-  // Update pressure bar
-  const minPressure = Math.min(...trupp.members.map(m => m.druck));
-  const pressureBarContainer = document.getElementById(`pressure-bar-container-${trupp.id}`);
-  if (pressureBarContainer) {
-    pressureBarContainer.innerHTML = ''; // Clear existing bar
-    const pressureBar = document.createElement('div');
-    pressureBar.className = 'pressure-bar';
-    pressureBar.classList.add(
-      minPressure <= 50 ? 'low' : minPressure <= 160 ? 'medium' : 'high'
-    );
-    const maxPressure = 320; // Maximum pressure for scaling
-    pressureBar.style.width = `${(minPressure / maxPressure) * 100}%`;
-    pressureBarContainer.appendChild(pressureBar);
-  }
-
-  // Update warning classes
-  card.classList.remove('low-pressure', 'notfall');
-  if (trupp.notfallAktiv) {
-    card.classList.add('notfall');
-  } else if (minPressure <= 50) {
-    card.classList.add('low-pressure');
-  }
-
-  zeigeMeldungen(trupp);
-}
-
-/**
- * Zeigt alle Meldungen eines Trupps im UI an.
- */
-function zeigeMeldungen(trupp) {
-  const meldungDiv = document.getElementById(`meldungen-${trupp.id}`);
-  meldungDiv.innerHTML = "";
-  // Reverse meldungen to show newest first
-  [...trupp.meldungen].reverse().forEach(m => {
-    const p = document.createElement("p");
-    p.textContent = m.members
-      ? `${m.kommentar} (${m.members.map(mem => `${mem.role}: ${mem.druck} bar`).join(", ")})`
-      : m.kommentar;
-    meldungDiv.appendChild(p);
-  });
+  renderAllTrupps();
 }
 
 /**
@@ -419,12 +377,14 @@ function clearArchivContainer() {
 
 // Beim Laden archivierte Trupps ins Archiv-Container rendern
 function renderArchivierteTrupps() {
-  trupps.filter(t => t.inaktiv).forEach(renderArchivTrupp);
+  const archivContainer = document.getElementById("archiv-container");
+  archivContainer.innerHTML = "";
+  getAllTrupps().filter(t => t.inaktiv).forEach(renderArchivTrupp);
 }
 
 // Nach dem Laden der Seite
 window.addEventListener('DOMContentLoaded', async () => {
-  loadTruppsFromLocalStorage();
+  renderAllTrupps();
   renderArchivierteTrupps();
 });
 
@@ -437,3 +397,7 @@ function setFakeInputValue(id, value) {
 // setFakeInputValue('tf-druck', '300 bar');
 // setFakeInputValue('trupp-name-input', 'Trupp 1');
 // setFakeInputValue('trupp-mission-display', 'Brandbekämpfung');
+
+window.showTruppForm = showTruppForm;
+window.addTruppMember = addTruppMember;
+window.createTrupp = createTrupp;
