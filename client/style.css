@@ -104,8 +104,8 @@ h1, h2, h3 {
 
 button {
   margin: 0.25rem 0.1rem;
-  padding: 0.4rem 0.8rem;
-  font-size: 1rem;
+  padding: 0.36rem 0.72rem;
+  font-size: 0.9rem;
   border: none;
   border-radius: 4px;
   background: #007bff;
@@ -133,10 +133,10 @@ input, select {
 
 /* Touch-Optimierung und Fokus-Verbesserung */
 button, .druck-btn, .name-btn, .mission-btn {
-  min-width: 56px;
-  min-height: 56px;
-  font-size: 1.3rem;
-  padding: 1rem 1.5rem;
+  min-width: 50px;
+  min-height: 50px;
+  font-size: 1.17rem;
+  padding: 0.9rem 1.35rem;
   margin: 0.5rem 0.2rem;
   touch-action: manipulation;
 }
@@ -147,10 +147,10 @@ input, select {
   margin-bottom: 1rem;
 }
 .druck-btn, .name-btn, .mission-btn {
-  min-width: 120px;
-  min-height: 56px;
-  font-size: 1.4rem;
-  padding: 1.2rem;
+  min-width: 108px;
+  min-height: 50px;
+  font-size: 1.26rem;
+  padding: 1.08rem;
   margin: 0.5rem;
   touch-action: manipulation;
 }
@@ -159,15 +159,15 @@ button:focus, .druck-btn:focus, .name-btn:focus, .mission-btn:focus, input:focus
   box-shadow: 0 0 0 4px #b3d7ff;
 }
 #error-overlay button {
-  min-width: 120px;
-  min-height: 56px;
-  font-size: 1.3rem;
-  padding: 1rem 2rem;
+  min-width: 108px;
+  min-height: 50px;
+  font-size: 1.17rem;
+  padding: 0.9rem 1.8rem;
 }
 .close-btn {
-  width: 56px;
-  height: 56px;
-  font-size: 1.6rem;
+  width: 50px;
+  height: 50px;
+  font-size: 1.44rem;
   top: 16px;
   right: 16px;
 }
@@ -234,8 +234,8 @@ button:focus, .druck-btn:focus, .name-btn:focus, .mission-btn:focus, input:focus
 }
 
 .druck-btn, .name-btn, .mission-btn {
-  padding: 1.2rem;
-  font-size: 1.4rem;
+  padding: 1.08rem;
+  font-size: 1.26rem;
   border: 1px solid #ccc;
   border-radius: 8px;
   background: #f8f9fa;
@@ -498,10 +498,10 @@ button:focus, .druck-btn:focus, .name-btn:focus, .mission-btn:focus, input:focus
 /* Touch-Optimierung für Tablets im Querformat (900px bis 1300px) */
 @media (min-width: 900px) and (max-width: 1300px) {
   button, .druck-btn, .name-btn, .mission-btn {
-    min-width: 44px;
-    min-height: 44px;
-    font-size: 1.1rem;
-    padding: 0.7rem 1.1rem;
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 0.99rem;
+    padding: 0.63rem 0.99rem;
     margin: 0.3rem 0.1rem;
   }
   input, select {
@@ -511,10 +511,10 @@ button:focus, .druck-btn:focus, .name-btn:focus, .mission-btn:focus, input:focus
     margin-bottom: 0.7rem;
   }
   .druck-btn, .name-btn, .mission-btn {
-    min-width: 80px;
-    min-height: 44px;
-    font-size: 1.1rem;
-    padding: 0.7rem;
+    min-width: 72px;
+    min-height: 40px;
+    font-size: 0.99rem;
+    padding: 0.63rem;
     margin: 0.3rem;
   }
   #druck-content, #name-content, #mission-content, #truppname-content, #notfall-content {
@@ -545,15 +545,15 @@ button:focus, .druck-btn:focus, .name-btn:focus, .mission-btn:focus, input:focus
     font-size: 1rem;
   }
   #error-overlay button {
-    min-width: 80px;
-    min-height: 44px;
-    font-size: 1.1rem;
-    padding: 0.7rem 1.1rem;
+    min-width: 72px;
+    min-height: 40px;
+    font-size: 0.99rem;
+    padding: 0.63rem 0.99rem;
   }
   .close-btn {
-    width: 44px;
-    height: 44px;
-    font-size: 1.2rem;
+    width: 40px;
+    height: 40px;
+    font-size: 1.08rem;
     top: 10px;
     right: 10px;
   }

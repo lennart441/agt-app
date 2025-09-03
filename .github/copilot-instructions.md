@@ -8,25 +8,33 @@
   - **Report-Server** (`report-server/`): Erstellt und exportiert PDF-Berichte, z.B. für Nextcloud.
 
 ## Datenfluss & Kommunikation
-- **Truppdaten** werden im Client angelegt und regelmäßig (alle 2 Sekunden) per REST-API an den Sync-Server übertragen (`/v1/sync-api/trupps`).
-- **Monitoring-Client** fragt die Truppdaten live vom Sync-Server ab und zeigt Warnungen (z.B. niedriger Druck, Zeitüberschreitung) an.
-- **Report-Server** verarbeitet die Truppdaten und erstellt PDF-Berichte.
-- **Einsatz-Tokens** trennen verschiedene Einsätze und steuern die Sichtbarkeit/Synchronisation der Daten.
+- **Truppdaten** werden im Client angelegt und alle 2 Sekunden per REST-API an den Sync-Server übertragen (`POST /v1/sync-api/trupps` mit X-Operation-Token Header).
+- **Monitoring-Client** fragt die Truppdaten alle 2 Sekunden live vom Sync-Server ab (`GET /v1/sync-api/trupps?token=...`).
+- **Report-Server** verarbeitet die Truppdaten und erstellt PDF-Berichte; PDFs werden per `POST /v1/report/upload-report` hochgeladen und via WebDAV zu Nextcloud übertragen.
+- **Einsatz-Tokens** trennen verschiedene Einsätze und steuern die Sichtbarkeit/Synchronisation der Daten (Beispiele: "Wasser112", "Feuerwehr112").
 
 ## Wichtige Patterns & Konventionen
-- **UI-Logik**: Truppkarten werden dynamisch gerendert (siehe `ui.js`, `monitor.js`).
-- **Overlays**: Für Eingaben (Druck, Name, Auftrag, Notfall) werden Overlays genutzt (`overlays.js`, HTML-Overlays in `index.html`).
-- **CSS-Klassen**: Status wie Warnung, Alarm, Notfall werden über CSS-Klassen (`warnphase`, `alarmphase`, `notfall`, `low-pressure`) gesteuert.
-- **Lokale Speicherung**: Truppdaten werden im Local Storage gehalten und synchronisiert (`logic.js`).
-- **PDF-Export**: Berichte werden mit `jspdf` erstellt und können direkt an Nextcloud übertragen werden (`report.js`).
-- **Fehler- und Statusanzeigen**: Warnungen und Fehler werden im UI hervorgehoben, nicht als Popups.
+- **UI-Logik**: Truppkarten werden dynamisch gerendert (siehe `renderTrupp(trupp)` in `ui.js` und `monitor.js`).
+- **Overlays**: Für Eingaben (Druck, Name, Auftrag, Notfall) werden Overlays genutzt (`overlays.js`, HTML-Overlays in `index.html`). Fake-Inputs (`.fake-input`) öffnen Overlays beim Klick.
+- **CSS-Klassen**: Status wie Warnung, Alarm, Notfall werden über CSS-Klassen gesteuert:
+  - `.warnphase`: Zeit seit letzter Meldung >9 Minuten
+  - `.alarmphase`: Zeit seit letzter Meldung >10 Minuten
+  - `.notfall`: AGT-Notfall aktiv
+  - `.low-pressure`: Mindestdruck ≤50 bar
+  - `.inaktiv`: Trupp aufgelöst
+- **Lokale Speicherung**: Inaktive Trupps werden im Local Storage gehalten (`logic.js`).
+- **PDF-Export**: Berichte werden mit `jspdf` erstellt (`report.js`), inkl. Truppdetails, Mitgliedern und Meldungen.
+- **Fehler- und Statusanzeigen**: Warnungen und Fehler werden im UI hervorgehoben, nicht als Popups (siehe `showErrorOverlay`).
+- **Service Workers**: PWA-Funktionalität für Offline-Nutzung (`sw.js`, `monitor-sw.js`).
+- **Datenmodell**: Trupp-Objekt mit `id`, `name`, `mission`, `members` (Array mit `name`, `druck`, `role`), `meldungen` (Array mit `kommentar`, `members`), `inaktiv`, `notfallAktiv`, etc.
 
 ## Entwickler-Workflows
-- **Starten (Client):** Öffne `index.html` im Browser. Für Live-Reload nutze z.B. Five Server.
+- **Starten (Client):** Öffne `index.html` im Browser. Für Live-Reload nutze VS Code Five Server Extension oder `npx live-server client/`.
 - **Sync-Server:** Starte mit `docker compose -f sync-server/docker-compose.yaml up -d --build`.
 - **Monitoring-Client:** Öffne `monitoring.html` im Browser.
 - **Report-Server:** Starte mit `docker compose -f report-server/docker-compose.yml up -d --build`.
-- **Debugging:** Nutze die Browser-Konsole für UI-Fehler, prüfe Server-Logs für Sync-Probleme.
+- **Debugging:** Nutze Browser-Konsole für UI-Fehler, prüfe Server-Logs für Sync-Probleme. Tokens werden in `sync-server/tokens.json` definiert.
+- **Lokale Entwicklung:** Sync-Server läuft standardmäßig auf `http://localhost:3001`, Report-Server auf `http://localhost:3000`.
 
 ## Integration & Abhängigkeiten
 - **Externe Libraries:**
@@ -35,20 +43,27 @@
 - **Datenmodelle:**
   - Truppdaten: Name, Auftrag, Mitglieder, Druck, Meldungen, Status
   - JSON-Vorschlagslisten: `truppnamen.json`, `agtler.json`, `auftrag.json`
+- **Umgebungsvariablen (Report-Server):** `NEXTCLOUD_WEBDAV_URL`, `NEXTCLOUD_USERNAME`, `NEXTCLOUD_PASSWORD`
 
 ## Beispiele für typische Muster
 - **Truppkarte rendern:**
-  - Siehe `renderTrupp(trupp)` in `ui.js` und `monitor.js`.
+  - Siehe `renderTrupp(trupp)` in `ui.js` und `monitor.js`: Erstelle `<div class="trupp-card">` mit Titel, Auftrag, Mitgliederliste, Druckbalken, Buttons.
 - **Overlay öffnen:**
-  - `showDruckOverlay('tf-druck')` öffnet das Druck-Overlay für den Truppführer.
+  - `showDruckOverlay('tf-druck')` öffnet Druck-Overlay für Truppführer; Werte von 320 bis 10 bar in 10er-Schritten.
 - **Warnung anzeigen:**
-  - CSS-Klasse `.trupp-card.low-pressure` wird bei <50 bar gesetzt.
+  - CSS-Klasse `.trupp-card.low-pressure` wird bei ≤50 bar gesetzt; `.warnung` Div mit Text "⚠️ Warnung: Einer der Träger hat unter 50% Luft."
+- **Sync durchführen:**
+  - `syncTruppsToServer()` sendet `POST` mit `{ trupps, timestamp }` und Token-Header.
+- **PDF erstellen:**
+  - `uploadToNextcloud()` nutzt `jsPDF` für mehrseitigen Bericht mit Truppdetails, dann `fetch` zu Report-Server.
 
 ## Hinweise für AI Agents
 - Halte dich an die bestehende Modulstruktur und trenne UI, Logik und Overlays.
 - Nutze die vorhandenen Datenmodelle und Synchronisationsmechanismen.
 - Beachte die Einsatz-Tokens für alle serverseitigen Operationen.
 - Übernimm die Patterns für Overlays und Statusanzeigen aus den bestehenden Dateien.
+- Bei Änderungen an Truppdaten immer `syncTruppsToServer()` aufrufen.
+- Für neue Features prüfe Konsistenz zwischen Client und Monitoring-Client.
 
 ---
 
