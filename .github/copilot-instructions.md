@@ -1,70 +1,85 @@
-# Copilot Instructions for AGT-App
+# AGT-App: Copilot Instructions for AI Coding Agents
 
-## Architektur & Komponenten
-- Die Anwendung besteht aus vier Hauptmodulen:
-  - **Client** (`client/`): Web-App zur Verwaltung und Überwachung von Atemschutztrupps. Enthält UI, Logik, Overlays, Styles und Datenmodelle.
-  - **Monitoring-Client** (`monitoring-client/`): Zeigt Truppdaten und Warnungen live auf separaten Geräten an.
-  - **Sync-Server** (`sync-server/`): Node.js-Server für die Synchronisation aller Truppdaten über Einsatz-Tokens.
-  - **Report-Server** (`report-server/`): Erstellt und exportiert PDF-Berichte, z.B. für Nextcloud.
+## Project Architecture
+- **Modules:**
+	- `client/`: Main web client for managing and monitoring fire brigade teams (Trupps). Handles UI, overlays, local storage, sync logic, and event logic.
+	- `monitoring-client/`: Read-only dashboard for live status of all Trupps, filtered by operation token.
+	- `sync-server/`: Node.js server for real-time data synchronization between clients. Data is separated by operation token.
+	- `report-server/`: Node.js server for generating and uploading PDF reports to Nextcloud.
 
-## Datenfluss & Kommunikation
-- **Truppdaten** werden im Client angelegt und alle 2 Sekunden per REST-API an den Sync-Server übertragen (`POST /v1/sync-api/trupps` mit X-Operation-Token Header).
-- **Monitoring-Client** fragt die Truppdaten alle 2 Sekunden live vom Sync-Server ab (`GET /v1/sync-api/trupps?token=...`).
-- **Report-Server** verarbeitet die Truppdaten und erstellt PDF-Berichte; PDFs werden per `POST /v1/report/upload-report` hochgeladen und via WebDAV zu Nextcloud übertragen.
-- **Einsatz-Tokens** trennen verschiedene Einsätze und steuern die Sichtbarkeit/Synchronisation der Daten (Beispiele: "Wasser112", "Feuerwehr112").
+## Data Flow & Integration
+- **Trupps** are created/managed in `client/` and synchronized via `sync-server/`.
+- **Monitoring** uses the same sync API, but is read-only and highlights warnings (low pressure, timeout).
+- **Report generation** is triggered from the client and handled by `report-server/`.
+- **Tokens** (see `logic.js`) are used to separate data per operation; passed via URL or config.
+- **Service Workers** (`sw.js`, `monitor-sw.js`) cache assets for offline use, but exclude API calls to sync/report servers.
 
-## Wichtige Patterns & Konventionen
-- **UI-Logik**: Truppkarten werden dynamisch gerendert (siehe `renderTrupp(trupp)` in `ui.js` und `monitor.js`).
-- **Overlays**: Für Eingaben (Druck, Name, Auftrag, Notfall) werden Overlays genutzt (`overlays.js`, HTML-Overlays in `index.html`). Fake-Inputs (`.fake-input`) öffnen Overlays beim Klick.
-- **CSS-Klassen**: Status wie Warnung, Alarm, Notfall werden über CSS-Klassen gesteuert:
-  - `.warnphase`: Zeit seit letzter Meldung >9 Minuten
-  - `.alarmphase`: Zeit seit letzter Meldung >10 Minuten
-  - `.notfall`: AGT-Notfall aktiv
-  - `.low-pressure`: Mindestdruck ≤50 bar
-  - `.inaktiv`: Trupp aufgelöst
-- **Lokale Speicherung**: Inaktive Trupps werden im Local Storage gehalten (`logic.js`).
-- **PDF-Export**: Berichte werden mit `jspdf` erstellt (`report.js`), inkl. Truppdetails, Mitgliedern und Meldungen.
-- **Fehler- und Statusanzeigen**: Warnungen und Fehler werden im UI hervorgehoben, nicht als Popups (siehe `showErrorOverlay`).
-- **Service Workers**: PWA-Funktionalität für Offline-Nutzung (`sw.js`, `monitor-sw.js`).
-- **Datenmodell**: Trupp-Objekt mit `id`, `name`, `mission`, `members` (Array mit `name`, `druck`, `role`), `meldungen` (Array mit `kommentar`, `members`), `inaktiv`, `notfallAktiv`, etc.
+## Local Storage & Data Persistence
+- **All client data must be managed via localStorage.**
+  - On every change, update localStorage so data survives page reloads and can be exported/imported easily.
+  - Never rely solely on in-memory state for critical information.
+  - Use helper functions for reading/writing localStorage (see `localStorage.js`).
 
-## Entwickler-Workflows
-- **Starten (Client):** Öffne `index.html` im Browser. Für Live-Reload nutze VS Code Five Server Extension oder `npx live-server client/`.
-- **Sync-Server:** Starte mit `docker compose -f sync-server/docker-compose.yaml up -d --build`.
-- **Monitoring-Client:** Öffne `monitoring.html` im Browser.
-- **Report-Server:** Starte mit `docker compose -f report-server/docker-compose.yml up -d --build`.
-- **Debugging:** Nutze Browser-Konsole für UI-Fehler, prüfe Server-Logs für Sync-Probleme. Tokens werden in `sync-server/tokens.json` definiert.
-- **Lokale Entwicklung:** Sync-Server läuft standardmäßig auf `http://localhost:3001`, Report-Server auf `http://localhost:3000`.
+## Separation of Concerns
+- **Strictly separate HTML, CSS, and JS:**
+  - HTML structure belongs in `.html` files, CSS in `.css`, JS logic in `.js`.
+  - Do not generate large HTML blocks in JS; instead, define overlays and UI elements in HTML with `display: none` and show/hide via JS.
+  - Avoid mixing logic and markup; keep UI rendering and business logic in separate functions/files.
+  - When adding new features, ensure functions are modular and placed in the correct file (UI, overlays, eventlistener, logic, etc.).
+- **Event Listeners & Helper Functions:**
+  - Event listeners and global helper functions (e.g. setFakeInputValue, setupMeldungInput) belong in `eventlistener.js` and are exposed as window.*.
+  - The order of scripts in `index.html` should be: `eventlistener.js`, `overlays.js`, `ui.js`, `logic.js`.
+- **Overlay Callbacks:**
+  - Overlay callback functions should be in `overlays.js` or `ui-overlays.js`, not in `ui.js`.
+- **Error Handling:**
+  - Error overlays and central error handling should be in `overlays.js`.
 
-## Integration & Abhängigkeiten
-- **Externe Libraries:**
-  - `jspdf` für PDF-Export (`client/lib/jspdf.umd.min.js`)
-  - `webdav` für Nextcloud-Upload (`client/lib/webdav.min.js`)
-- **Datenmodelle:**
-  - Truppdaten: Name, Auftrag, Mitglieder, Druck, Meldungen, Status
-  - JSON-Vorschlagslisten: `truppnamen.json`, `agtler.json`, `auftrag.json`
-- **Umgebungsvariablen (Report-Server):** `NEXTCLOUD_WEBDAV_URL`, `NEXTCLOUD_USERNAME`, `NEXTCLOUD_PASSWORD`
+## Button and UI Logic
+- **Trupp Card Buttons:**
+  - The buttons "Trupp legt an" (Team gears up), "Trupp legt ab" (Team gears down), "Trupp auflösen" (Dissolve team), "AGT Notfall" (Emergency), "AGT Notfall beenden" (End emergency) are shown depending on the team status and emergency status:
+    - After gearing up: show "Trupp legt ab" and "AGT Notfall" (or "AGT Notfall beenden" if active).
+    - After gearing down: show "Trupp legt an" and "Trupp auflösen". Show "AGT Notfall beenden" only if active, otherwise no emergency button.
 
-## Beispiele für typische Muster
-- **Truppkarte rendern:**
-  - Siehe `renderTrupp(trupp)` in `ui.js` und `monitor.js`: Erstelle `<div class="trupp-card">` mit Titel, Auftrag, Mitgliederliste, Druckbalken, Buttons.
-- **Overlay öffnen:**
-  - `showDruckOverlay('tf-druck')` öffnet Druck-Overlay für Truppführer; Werte von 320 bis 10 bar in 10er-Schritten.
-- **Warnung anzeigen:**
-  - CSS-Klasse `.trupp-card.low-pressure` wird bei ≤50 bar gesetzt; `.warnung` Div mit Text "⚠️ Warnung: Einer der Träger hat unter 50% Luft."
-- **Sync durchführen:**
-  - `syncTruppsToServer()` sendet `POST` mit `{ trupps, timestamp }` und Token-Header.
-- **PDF erstellen:**
-  - `uploadToNextcloud()` nutzt `jsPDF` für mehrseitigen Bericht mit Truppdetails, dann `fetch` zu Report-Server.
+## Developer Workflows
+- **Run Client:** Open `client/index.html` in browser. For local development, use a static server (e.g. Five Server).
+- **Run Monitoring:** Open `monitoring-client/monitoring.html` in browser.
+- **Start Servers:**
+	- `sync-server/`: `node sync-server.js` (or via Docker Compose)
+	- `report-server/`: `node server.js` (or via Docker Compose)
+- **Build/Test:** No build step; pure JS/HTML/CSS. No automated tests present.
+- **Debugging:** Use browser dev tools. Data is stored in localStorage and synced via REST API.
 
-## Hinweise für AI Agents
-- Halte dich an die bestehende Modulstruktur und trenne UI, Logik und Overlays.
-- Nutze die vorhandenen Datenmodelle und Synchronisationsmechanismen.
-- Beachte die Einsatz-Tokens für alle serverseitigen Operationen.
-- Übernimm die Patterns für Overlays und Statusanzeigen aus den bestehenden Dateien.
-- Bei Änderungen an Truppdaten immer `syncTruppsToServer()` aufrufen.
-- Für neue Features prüfe Konsistenz zwischen Client und Monitoring-Client.
+## Agent Communication
+- **If instructions are unclear or ambiguous, ask the user for clarification before making changes.**
+  - Do not guess or implement speculative solutions.
+  - Always confirm user intent for non-standard requests.
+
+## Project-Specific Conventions
+- **Global Functions:** Most client logic is exposed via `window.*` for UI event handlers, overlays, and event logic.
+- **Trupp Data Model:**
+	- `{ id, name, mission, previousMission, members: [{name, druck, role}], meldungen: [], inaktiv, notfallAktiv }`
+	- Pressure values must be >= 270 bar (see validation in `logic.js`).
+- **Overlays:** UI overlays for name, pressure, mission, emergency, etc. are managed in `overlays.js` and triggered from UI.
+- **Sync API:** URL is set in `logic.js` (`SYNC_API_URL`). Token is required for all sync operations.
+- **PDF Export:** Triggered via `window.uploadToNextcloud()`; uses `report.js` and `jspdf.umd.min.js`.
+- **Localization:** UI and comments are in German; keep new code and docs consistent.
+
+## External Dependencies
+- `jspdf.umd.min.js` for PDF generation
+- `webdav.min.js` for Nextcloud upload
+- Docker Compose for server deployment (see `docker-compose.yml`)
+
+## Patterns & Examples
+- **Add Team:** Use overlays for name/mission/pressure selection, then call `window.createTrupp()`.
+- **Update Mission:** Use `showMissionOverlay('update', truppId)` and `window.setMissionForTrupp(truppId, mission)`.
+- **Emergency:** Use `window.toggleNotfallForTrupp(truppId, aktiv)`.
+- **Sync:** Call `syncTruppsToServer()` in `logic.js` after changes.
+- **Report:** Call `window.uploadToNextcloud()` after the operation.
+
+## Key Files
+- `client/logic.js`, `client/ui.js`, `client/overlays.js`, `client/eventlistener.js`, `client/report.js`, `client/index.html`
+- `monitoring-client/monitor.js`, `monitoring-client/monitoring.html`
+- `sync-server/sync-server.js`, `report-server/server.js`
 
 ---
-
-Bitte gib Feedback, falls bestimmte Bereiche oder Workflows noch unklar sind oder weitere Beispiele benötigt werden.
+If any section is unclear or missing, please provide feedback for further refinement.

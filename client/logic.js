@@ -221,174 +221,7 @@ function getMeldungDruckValue(id) {
   return el ? el.textContent.replace(' bar', '').trim() : '';
 }
 
-/**
- * Erstellt einen neuen Trupp aus den Formulareingaben und rendert ihn
- */
-function createTrupp() {
-  const truppName = getFakeInputValue('trupp-name-input');
-  const mission = getFakeInputValue('trupp-mission-display');
-  const memberDivs = document.querySelectorAll('#trupp-members .trupp-member');
-  const members = Array.from(memberDivs).map((div, idx) => {
-    let name, druck, role;
-    if (idx === 0) {
-      name = getFakeInputValue('tf-name');
-      druck = getFakeInputValue('tf-druck');
-      role = 'TF';
-    } else {
-      name = getFakeInputValue(`tm${idx}-name`);
-      druck = getFakeInputValue(`tm${idx}-druck`);
-      role = `TM${idx}`;
-    }
-    return {
-      name: name,
-      druck: parseInt(druck),
-      role: role
-    };
-  });
-  // Validierung: Truppname, alle Namen und alle Druckwerte müssen vorhanden sein
-  if (!truppName || !mission || members.some(m => !m.name || !m.druck)) {
-    showErrorOverlay('Bitte alle Felder ausfüllen!');
-    return;
-  }
-  // Validate that all members have at least 270 bar
-  const invalidMembers = members.filter(member => member.druck < 270);
-  if (invalidMembers.length > 0) {
-    showErrorOverlay("Alle Truppmitglieder müssen mindestens 270 bar haben.");
-    return;
-  }
-  const trupp = {
-    id: Date.now(),
-    name: truppName,
-    mission: mission,
-    previousMission: '',
-    members: members,
-    meldungen: [],
-    hatWarnungErhalten: false,
-    timer: 0,
-    startZeit: null,
-    inaktiv: false,
-    intervalRef: null,
-    notfallAktiv: false
-  };
-  window.saveTrupp(trupp);
-  renderTrupp(trupp);
-  document.getElementById('trupp-form-wrapper').style.display = 'none';
-  // Reset form
-  const truppForm = document.getElementById('trupp-members');
-  truppForm.innerHTML = `
-    <div class="trupp-member">
-      <label>Truppführer Name:</label>
-      <input type="text" id="tf-name" onclick="showNameOverlay('tf-name')">
-      <label>Druck:</label>
-      <input type="text" id="tf-druck" onclick="showDruckOverlay('tf-druck')">
-    </div>
-    <div class="trupp-member">
-      <label>Truppmann 1 Name:</label>
-      <input type="text" id="tm1-name" onclick="showNameOverlay('tm1-name')">
-      <label>Druck:</label>
-      <input type="text" id="tm1-druck" onclick="showDruckOverlay('tm1-druck')">
-    </div>
-  `;
-  selectedMission = '';
-  memberCounter = 2;
-  syncTruppsToServer();
-}
 
-/**
- * Startet den Timer für einen Trupp und aktualisiert die Anzeige
- */
-function startTimer(trupp) {
-  trupp.startZeit = Date.now();
-  const card = document.getElementById(`trupp-${trupp.id}`);
-  const timerDiv = document.getElementById(`timer-${trupp.id}`);
-
-  if (trupp.intervalRef) clearInterval(trupp.intervalRef);
-
-  trupp.intervalRef = setInterval(() => {
-    const vergangen = Math.floor((Date.now() - trupp.startZeit) / 1000);
-    const min = Math.floor(vergangen / 60).toString().padStart(2, '0');
-    const sec = (vergangen % 60).toString().padStart(2, '0');
-    timerDiv.textContent = `Zeit seit letzter Meldung: ${min}:${sec}`;
-
-    // Aktualisiere trupp.timer mit der vergangenen Zeit in ms
-    trupp.timer = vergangen * 1000;
-
-    if (vergangen > 600) {
-      card.classList.remove("warnphase");
-      card.classList.add("alarmphase");
-    } else if (vergangen > 540) {
-      card.classList.add("warnphase");
-      card.classList.remove("alarmphase");
-    } else {
-      card.classList.remove("warnphase", "alarmphase");
-    }
-
-    // Neue Bedingung: Nach 12 Minuten das Druck-Erinnerungs-Overlay öffnen
-    // console.log('Trupp Timer:', trupp.timer, 'Bedingung erreicht?', trupp.timer >= 12 * 60 * 1000);
-    // Optional: Wenn Timer in Sekunden läuft, verwende diese Bedingung stattdessen:
-    // if (trupp.timer >= 12 * 60 && !trupp.pressureReminderShown) { // 12 Minuten in Sekunden
-    if (trupp.timer >= 12 * 60 * 1000 && !trupp.pressureReminderShown) { // 12 Minuten in ms
-      // console.log('Overlay wird geöffnet für Trupp:', trupp.id);
-      showPressureReminderOverlay(trupp.id);
-      trupp.pressureReminderShown = true; // Flag setzen
-    }
-  }, 1000);
-}
-
-/**
- * Verarbeitet eine neue Druckmeldung oder nur eine Notiz für einen Trupp
- */
-function meldung(id) {
-  const trupp = getTrupp(id);
-  if (!trupp) return;
-  const memberDruckInputs = trupp.members.map((_, index) => {
-    const druckValue = getMeldungDruckValue(`meldung-${index}-${id}`);
-    return {
-      druck: druckValue === '' ? null : parseInt(druckValue),
-      role: index === 0 ? "TF" : `TM${index}`
-    };
-  });
-  const notizInput = document.getElementById(`notiz-${id}`);
-  const notiz = notizInput ? notizInput.value : '';
-  const zeit = new Date().toLocaleTimeString();
-  const alleDruckeVorhanden = memberDruckInputs.every((input) => input.druck !== null && !isNaN(input.druck));
-  if (alleDruckeVorhanden) {
-    for (let i = 0; i < memberDruckInputs.length; i++) {
-      const currentDruck = memberDruckInputs[i].druck;
-      const lastDruck = trupp.members[i].druck;
-      if (isNaN(currentDruck) || currentDruck > lastDruck) {
-        showErrorOverlay("Druck darf nicht höher sein als bei der letzten Meldung oder beim Anlegen.");
-        return;
-      }
-    }
-    trupp.members.forEach((member, index) => {
-      member.druck = memberDruckInputs[index].druck;
-    });
-    addMeldungToTrupp(id, { kommentar: `${zeit}: ${notiz}`, members: memberDruckInputs });
-    trupp.members.forEach((_, index) => {
-      setFakeInputValue(`meldung-${index}-${id}`, '');
-    });
-    if (!trupp.inaktiv && trupp.startZeit) {
-      startTimer(trupp);
-    }
-  } else if (notiz.trim() !== '') {
-    addMeldungToTrupp(id, { kommentar: `${zeit}: ${notiz}` });
-  } else {
-    showErrorOverlay("Bitte entweder alle Druckwerte angeben oder eine Notiz eintragen.");
-    return;
-  }
-  if (notizInput) notizInput.value = '';
-  renderTrupp(trupp);
-}
-
-/**
- * Markiert einen Trupp als abgelegt und speichert dies
- */
-function ablegen(trupp) {
-  updateTrupp(trupp.id, { inaktiv: true });
-  renderTrupp(trupp);
-  return true;
-}
 
 /**
  * Bestätigt oder beendet einen Notfall für einen Trupp
@@ -415,15 +248,84 @@ function updateMission(truppId, newMission) {
   }
 }
 
+
+
 /**
- * Fügt ein Mitglied zu einem Trupp hinzu
+ * Startet einen Trupp (legt an) und setzt die Start- und Meldungszeit.
+ * Fügt eine Meldung hinzu.
  */
-function addMemberToTruppLogic(truppId, name, druckRaw) {
-  let druck = typeof druckRaw === 'string' ? parseInt(druckRaw.replace(/[^0-9]/g, ''), 10) : druckRaw;
-  if (!name || isNaN(druck) || druck < 270) {
-    showErrorOverlay('Bitte gültigen Namen und Druck (mind. 270 bar) angeben.');
+window.handleTruppStart = function(trupp) {
+  const now = Date.now();
+  window.updateTruppData(trupp.id, {
+    startZeit: now,
+    lastMeldungZeit: now
+  });
+  window.addMeldungForTrupp(trupp.id, { kommentar: `Trupp legt an (${new Date(now).toLocaleTimeString()})`, zeit: now });
+};
+
+/**
+ * Verarbeitet eine Druckmeldung/Notiz für einen Trupp.
+ * Aktualisiert die Member-Daten und fügt eine Meldung hinzu.
+ */
+window.meldung = function(truppId) {
+  const trupp = window.getTrupp(truppId);
+  if (!trupp) return;
+  const now = Date.now();
+  const notiz = document.getElementById(`notiz-${truppId}`)?.value.trim() || "";
+  let druckGeaendert = false;
+  let errorMsg = "";
+  const updatedMembers = trupp.members.map((m, idx) => {
+    const druckDiv = document.getElementById(`meldung-${idx}-${truppId}`);
+    const enteredDruck = druckDiv ? druckDiv.textContent.trim() : "";
+    const druckNum = parseInt(enteredDruck);
+    if (enteredDruck !== "" && (isNaN(druckNum) || druckNum > m.druck)) {
+      errorMsg += `${m.name}: Es muss ein gültiger Druck ≤ aktueller Druck eingegeben werden.\n`;
+    }
+    if (enteredDruck !== "" && !isNaN(druckNum) && druckNum !== m.druck) {
+      druckGeaendert = true;
+    }
+    return { ...m, druck: (!isNaN(druckNum) ? druckNum : m.druck) };
+  });
+
+  // Fall 1: Mindestens ein Druck geändert
+  if (druckGeaendert) {
+    if (errorMsg) {
+      if (typeof showErrorOverlay === 'function') showErrorOverlay(errorMsg.trim());
+      return;
+    }
+    window.updateTruppData(truppId, { members: updatedMembers, lastMeldungZeit: now });
+    let kommentar = 'Druckmeldung';
+    if (notiz) kommentar += `; Notiz: ${notiz}`;
+    window.addMeldungForTrupp(truppId, {
+      kommentar,
+      members: updatedMembers,
+      zeit: now
+    });
+    document.getElementById(`notiz-${truppId}`).value = "";
     return;
   }
-  addMemberToTrupp(truppId, { name, druck, role: `TM${getTrupp(truppId).members.length}` });
-  renderTrupp(getTrupp(truppId));
-}
+
+  // Fall 2: Keine Drücke geändert, aber Notiz vorhanden
+  if (!druckGeaendert && notiz) {
+    window.addMeldungForTrupp(truppId, { kommentar: `Notiz: ${notiz}`, zeit: now });
+    document.getElementById(`notiz-${truppId}`).value = "";
+    return;
+  }
+};
+
+/**
+ * Validiert die Daten eines Mitglieds (Name und Druck).
+ * Gibt true zurück, wenn gültig, sonst zeigt Fehler und gibt false zurück.
+ */
+window.validateMemberData = function(name, druck) {
+  if (!name || typeof name !== 'string' || name.length < 2) {
+    if (typeof showErrorOverlay === 'function') showErrorOverlay('Bitte einen gültigen Namen eingeben!');
+    return false;
+  }
+  if (!druck || isNaN(druck) || druck < 10 || druck > 320) {
+    if (typeof showErrorOverlay === 'function') showErrorOverlay('Bitte einen gültigen Druck (10-320 bar) eingeben!');
+    return false;
+  }
+  return true;
+};
+
