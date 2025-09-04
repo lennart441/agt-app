@@ -14,6 +14,44 @@
     <p id="sync-timestamp">Sync-Zeitpunkt: -</p>
   </div>
   <div id="trupp-container"></div>
+  
+  <div id="uuid-overlay" class="overlay" style="display: none;">
+    <div class="overlay-content">
+      <h2>Wählen Sie eine UUID aus</h2>
+      <div id="uuid-list"></div>
+      <button id="uuid-cancel-btn">Abbrechen</button>
+    </div>
+  </div>
+
+  <div id="settings-overlay" class="overlay" style="display: none;">
+    <div class="settings-content">
+      <div class="settings-left">
+        <h2>Einstellungen</h2>
+        <ul id="settings-list">
+          <li data-setting="token" class="settings-item selected">Token ändern</li>
+          <li data-setting="uuid" class="settings-item">UUID ändern</li>
+          <!-- Weitere Einstellungen können hier ergänzt werden -->
+        </ul>
+      </div>
+      <div class="settings-right" id="settings-detail">
+        <!-- Token ändern Formular -->
+        <div id="setting-token" class="setting-panel">
+          <label for="settings-token-input">Neues Token eingeben:</label>
+          <input type="text" id="settings-token-input" value="">
+          <button id="settings-token-save">Speichern</button>
+        </div>
+        <div id="setting-uuid" class="setting-panel" style="display:none;">
+          <label>UUID auswählen:</label>
+          <div id="settings-uuid-list"></div>
+        </div>
+        <!-- Weitere Panels können hier ergänzt werden -->
+      </div>
+      <button id="settings-close-btn" class="close-btn">×</button>
+    </div>
+  </div>
+
+  <button id="settings-btn" style="position: fixed; bottom: 10px; right: 10px;">Einstellungen</button>
+
   <script src="monitor.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

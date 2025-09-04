@@ -11,7 +11,7 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
-// In-Memory-Speicher für Truppdaten, nach Token getrennt
+// In-Memory-Speicher für Truppdaten, nach Token und UUID getrennt
 const operations = {};
 
 // Token werden aus externer JSON-Datei geladen
@@ -25,7 +25,6 @@ async function loadTokens() {
     validTokens = JSON.parse(data).tokens;
   } catch (error) {
     console.error('Error loading tokens:', error);
-    validTokens = ['abc123def456ghi7']; // Fallback token
   }
 }
 
@@ -47,14 +46,31 @@ function validateToken(req, res, next) {
   next();
 }
 
-// Speichert Truppdaten für ein Token
-function saveTruppData(token, trupps, timestamp) {
-  operations[token] = { trupps, timestamp };
+// Speichert Truppdaten für ein Token und eine UUID
+function saveTruppData(token, deviceUUID, trupps, timestamp, deviceName) {
+  if (!operations[token]) {
+    operations[token] = {};
+  }
+  operations[token][deviceUUID] = { trupps, timestamp, deviceName };
 }
 
-// Lädt Truppdaten für ein Token
-function loadTruppData(token) {
-  return operations[token] || { trupps: [], timestamp: null };
+// Lädt Truppdaten für ein Token (alle UUIDs oder spezifische UUID)
+function loadTruppData(token, deviceUUID = null) {
+  if (!operations[token]) {
+    return deviceUUID ? null : {};
+  }
+  if (deviceUUID) {
+    return operations[token][deviceUUID] || null;
+  }
+  return operations[token]; // Alle UUIDs mit ihren Daten
+}
+
+// Lädt alle aktiven UUIDs für ein Token
+function loadActiveUUIDs(token) {
+  if (!operations[token]) {
+    return [];
+  }
+  return Object.keys(operations[token]);
 }
 
 // Serverstart erst nach erfolgreichem Laden der Tokens
@@ -69,14 +85,14 @@ loadTokens().then(() => {
 // POST-Endpoint: Empfängt und speichert Truppdaten
 app.post('/v1/sync-api/trupps', validateToken, (req, res, next) => {
   try {
-    const { trupps, timestamp } = req.body;
+    const { trupps, timestamp, deviceUUID, deviceName } = req.body;
     // Validierung der Eingabedaten
-    if (!Array.isArray(trupps) || typeof timestamp !== 'number' || isNaN(new Date(timestamp).getTime())) {
-      console.warn(`Validation failed for token ${req.operationToken}: trupps=${JSON.stringify(trupps)}, timestamp=${timestamp}`);
-      return res.status(400).json({ error: 'Invalid trupps or timestamp format' });
+    if (!Array.isArray(trupps) || typeof timestamp !== 'number' || isNaN(new Date(timestamp).getTime()) || !deviceUUID || !deviceName) {
+      console.warn(`Validation failed for token ${req.operationToken}: trupps=${JSON.stringify(trupps)}, timestamp=${timestamp}, deviceUUID=${deviceUUID}, deviceName=${deviceName}`);
+      return res.status(400).json({ error: 'Invalid trupps, timestamp, deviceUUID, or deviceName format' });
     }
-    saveTruppData(req.operationToken, trupps, timestamp);
-    console.log(`Received data for token ${req.operationToken} at ${new Date(timestamp).toISOString()}`);
+    saveTruppData(req.operationToken, deviceUUID, trupps, timestamp, deviceName);
+    console.log(`Received data for token ${req.operationToken}, UUID ${deviceUUID}, Device ${deviceName} at ${new Date(timestamp).toISOString()}`);
     res.json({ status: 'success', timestamp });
   } catch (error) {
     console.error(`Error in POST /v1/sync-api/trupps for token ${req.operationToken}:`, error);
@@ -84,14 +100,30 @@ app.post('/v1/sync-api/trupps', validateToken, (req, res, next) => {
   }
 });
 
-// GET-Endpoint: Gibt Truppdaten für Token zurück
+// GET-Endpoint: Gibt Truppdaten für Token zurück (alle UUIDs oder spezifische UUID)
 app.get('/v1/sync-api/trupps', validateToken, (req, res, next) => {
   try {
-    const data = loadTruppData(req.operationToken);
-    console.log(`Sent data for token ${req.operationToken}: ${JSON.stringify(data)}`);
+    const { uuid } = req.query;
+    const data = loadTruppData(req.operationToken, uuid);
+    if (uuid && !data) {
+      return res.status(404).json({ error: 'No data found for the specified UUID' });
+    }
+    console.log(`Sent data for token ${req.operationToken}${uuid ? `, UUID ${uuid}` : ' (all UUIDs)'}: ${JSON.stringify(data)}`);
     res.json(data);
   } catch (error) {
     console.error(`Error in GET /v1/sync-api/trupps for token ${req.operationToken}:`, error);
+    next(error);
+  }
+});
+
+// GET-Endpoint: Gibt alle aktiven UUIDs für einen Token zurück
+app.get('/v1/sync-api/uuids', validateToken, (req, res, next) => {
+  try {
+    const uuids = loadActiveUUIDs(req.operationToken);
+    console.log(`Sent active UUIDs for token ${req.operationToken}: ${JSON.stringify(uuids)}`);
+    res.json({ uuids });
+  } catch (error) {
+    console.error(`Error in GET /v1/sync-api/uuids for token ${req.operationToken}:`, error);
     next(error);
   }
 });

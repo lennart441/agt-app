@@ -7,7 +7,7 @@
 const druckWerte = Array.from({ length: 11 }, (_, i) => 270 + i * 5); // 270 bis 320 in 5er-Schritten
 
 // Globale Variablen für Trupps und Vorschlagslisten
-const trupps = [];
+let trupps = [];
 let truppIdCounter = 0;
 
 let truppNameVorschlaege = [];
@@ -15,13 +15,32 @@ let agtlerNamen = [];
 let auftragVorschlaege = [];
 
 // URL für die Synchronisation mit dem Server
-const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
-//const SYNC_API_URL = 'http://localhost:3001/v1/sync-api/trupps';
+//const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
+const SYNC_API_URL = 'http://localhost:3001/v1/sync-api/trupps';
 
 // Token für die Operation, wird aus der URL gelesen
 //let OPERATION_TOKEN = getTokenFromUrl();
 let OPERATION_TOKEN = "abc123def456ghi7";
 
+// Fester Gerätename (temporär)
+const DEVICE_NAME = "AGT-Device";
+
+// UUID für das Gerät, wird beim ersten Laden generiert und gespeichert
+let DEVICE_UUID = localStorage.getItem('deviceUUID') || generateUUID();
+if (!localStorage.getItem('deviceUUID')) {
+  localStorage.setItem('deviceUUID', DEVICE_UUID);
+}
+
+/**
+ * Generiert eine einfache UUID (für Demo-Zwecke)
+ */
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 /**
  * Liest den Token aus der URL (?token=...)
@@ -94,6 +113,9 @@ async function ladeAuftragVorschlaege() {
  */
 async function syncTruppsToServer() {
   try {
+    // Lade Trupps aus localStorage über die Helper-Funktion
+    const truppsToSync = window.getAllTrupps();
+
     const response = await fetch(SYNC_API_URL, {
       method: 'POST',
       headers: {
@@ -101,8 +123,10 @@ async function syncTruppsToServer() {
         'X-Operation-Token': OPERATION_TOKEN
       },
       body: JSON.stringify({
-        trupps: trupps,
-        timestamp: Date.now()
+        trupps: truppsToSync,
+        timestamp: Date.now(),
+        deviceUUID: DEVICE_UUID,
+        deviceName: DEVICE_NAME
       })
     });
     if (!response.ok) {
@@ -114,82 +138,6 @@ async function syncTruppsToServer() {
   }
 }
 
-/**
- * Speichert inaktive Trupps im Local Storage des Browsers
- */
-function saveTruppsToLocalStorage() {
-  const serializableTrupps = trupps
-    .filter(t => t.inaktiv)
-    .map(t => ({
-      id: t.id,
-      name: t.name,
-      mission: t.mission,
-      previousMission: t.previousMission,
-      members: t.members.map(m => ({
-        name: m.name,
-        druck: m.druck,
-        role: m.role
-      })),
-      meldungen: t.meldungen.map(m => ({
-        kommentar: m.kommentar,
-        members: m.members ? m.members.map(mem => ({
-          role: mem.role,
-          druck: mem.druck
-        })) : undefined
-      })),
-      hatWarnungErhalten: t.hatWarnungErhalten,
-      inaktiv: t.inaktiv,
-      notfallAktiv: t.notfallAktiv
-    }));
-  localStorage.setItem('trupps', JSON.stringify(serializableTrupps));
-}
-
-/**
- * Lädt gespeicherte Trupps aus dem Local Storage und rendert sie
- */
-function loadTruppsFromLocalStorage() {
-  const storedTrupps = localStorage.getItem('trupps');
-  if (storedTrupps) {
-    try {
-      const parsedTrupps = JSON.parse(storedTrupps);
-      const maxStoredId = parsedTrupps.length > 0 
-        ? Math.max(...parsedTrupps.map(t => t.id || 0), 0)
-        : 0;
-      truppIdCounter = Math.max(truppIdCounter, maxStoredId + 1);
-      
-      parsedTrupps.forEach(trupp => {
-        if (!trupp.id || trupps.some(t => t.id === trupp.id)) {
-          trupp.id = truppIdCounter++;
-        }
-        trupp.inaktiv = true;
-        trupp.intervalRef = null;
-        trupp.startZeit = null;
-        trupp.timer = null;
-        trupp.notfallAktiv = trupp.notfallAktiv || false;
-        trupp.mission = trupp.mission || '';
-        trupp.previousMission = trupp.previousMission || '';
-        trupp.meldungen = trupp.meldungen || [];
-        trupp.hatWarnungErhalten = trupp.hatWarnungErhalten || false;
-        trupp.members = trupp.members || [];
-        trupp.meldungen = trupp.meldungen.map(m => ({
-          kommentar: m.kommentar || '',
-          members: m.members ? m.members.map(mem => ({
-            role: mem.role || '',
-            druck: mem.druck || 0
-          })) : undefined
-        }));
-        trupps.push(trupp);
-        // Entferne renderArchivTrupp(trupp) aus loadTruppsFromLocalStorage
-        //if (trupp.inaktiv) {
-        //  renderArchivTrupp(trupp);
-        //}
-      });
-    } catch (error) {
-      console.error('Fehler beim Laden der Trupps aus Local Storage:', error);
-      localStorage.removeItem('trupps'); // Clear corrupted data
-    }
-  }
-}
 
 // Initialisiert die Anwendung nach dem Laden der Seite
 window.addEventListener('DOMContentLoaded', async () => {
@@ -197,7 +145,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   console.log('Geladene Truppnamen:', truppNameVorschlaege);
   console.log('Geladene Agtler-Namen:', agtlerNamen);
   console.log('Geladene Aufträge:', auftragVorschlaege);
-  loadTruppsFromLocalStorage();
+  // Lade Trupps aus localStorage beim Start
+  trupps = window.getAllTrupps();
+  if (typeof renderAllTrupps === 'function') renderAllTrupps();
   
   // Start automatic sync every 2 seconds
   setInterval(syncTruppsToServer, 2000);

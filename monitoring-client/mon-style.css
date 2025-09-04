@@ -372,3 +372,170 @@ input, select {
   border-top: 1px solid #ccc;
   margin: 0.5rem 0;
 }
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.overlay-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+  text-align: center;
+}
+
+#uuid-overlay .overlay-content {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+#uuid-list {
+  margin: 20px 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.uuid-item {
+  display: block;
+  margin: 10px 0;
+  padding: 15px;
+  background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+  border: 2px solid #ccc;
+  cursor: pointer;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  font-family: sans-serif;
+}
+
+.uuid-item:hover {
+  background: linear-gradient(135deg, #e0e0e0, #d0d0d0);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.uuid-item.selected {
+  background: linear-gradient(135deg, #d4f7d4, #b2e6b2);
+  border: 2px solid #28a745;
+  color: #155724;
+}
+
+.uuid-header {
+  font-size: 1.1em;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.device-name {
+  font-size: 1em;
+  margin-bottom: 8px;
+  color: #555;
+}
+
+.timestamp {
+  font-size: 0.9em;
+  margin-bottom: 8px;
+  color: #777;
+}
+
+.timer {
+  font-size: 1em;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.no-uuid-message {
+  text-align: center;
+  font-size: 1.2em;
+  color: #666;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: row;
+  background: white;
+  border-radius: 8px;
+  max-width: 700px;
+  width: 95vw;
+  min-height: 350px;
+  max-height: 80vh;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  position: relative;
+}
+.settings-left {
+  width: 200px;
+  border-right: 1px solid #eee;
+  padding: 24px 16px 24px 24px;
+  background: #f7f7f7;
+  border-radius: 8px 0 0 8px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+.settings-left h2 {
+  margin-top: 0;
+  font-size: 1.2em;
+}
+#settings-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.settings-item {
+  padding: 10px 8px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #e0e0e0;
+  transition: background 0.2s;
+}
+.settings-item.selected, .settings-item:hover {
+  background: #007bff;
+  color: white;
+}
+.settings-right {
+  flex: 1;
+  padding: 24px;
+  min-width: 250px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.setting-panel {
+  display: none;
+}
+.setting-panel label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  display: block;
+}
+#setting-token {
+  display: block;
+}
+.close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #dc3545;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: white;
+  z-index: 10;
+}
