@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Atemschutzüberwachung Monitor</title>
-  <link rel="stylesheet" href="mon-style.css">
+  <link rel="stylesheet" href="mon-base.css">
+  <link rel="stylesheet" href="mon-trupp.css">
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -30,6 +31,7 @@
         <ul id="settings-list">
           <li data-setting="token" class="settings-item selected">Token ändern</li>
           <li data-setting="uuid" class="settings-item">UUID ändern</li>
+          <li data-setting="sync" class="settings-item">Synchronisierung</li>
           <!-- Weitere Einstellungen können hier ergänzt werden -->
         </ul>
       </div>
@@ -44,6 +46,15 @@
           <label>UUID auswählen:</label>
           <div id="settings-uuid-list"></div>
         </div>
+        <div id="setting-sync" class="setting-panel" style="display:none;">
+          <div style="display: flex; align-items: center; gap: 16px; margin: 12px 0 8px 0;">
+            <span style="font-weight: bold;">Mehrfachauswahl UUIDs</span>
+            <label class="switch">
+              <input type="checkbox" id="multi-uuid-switch">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
         <!-- Weitere Panels können hier ergänzt werden -->
       </div>
       <button id="settings-close-btn" class="close-btn">×</button>
@@ -53,6 +64,7 @@
   <button id="settings-btn" style="position: fixed; bottom: 10px; right: 10px;">Einstellungen</button>
 
   <script src="monitor.js"></script>
+  <script src="monitor-ui.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('monitor-sw.js', {scope: './'})

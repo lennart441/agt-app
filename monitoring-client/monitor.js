@@ -1,13 +1,12 @@
-//const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
+// Hilfsfunktionen, Overlay- und Settings-Logik
 const SYNC_API_URL = 'http://localhost:3001/v1/sync-api/trupps';
-
-//let OPERATION_TOKEN = getTokenFromUrl();
 let OPERATION_TOKEN = "abc123def456ghi7";
-//let OPERATION_TOKEN = "Atemschutz9";
 let lastSyncTimestamp = null;
 let selectedUUID = null;
 let refreshInterval = null;
 let settingsUUIDInterval = null;
+let multiUUIDEnabled = false;
+let selectedUUIDs = [];
 
 function getTokenFromUrl() {
   const params = new URLSearchParams(window.location.search);
@@ -72,6 +71,12 @@ function hideSettingsOverlay() {
   if (settingsUUIDInterval) {
     clearInterval(settingsUUIDInterval);
     settingsUUIDInterval = null;
+  }
+  // Nach Schließen: Trupps für alle ausgewählten UUIDs anzeigen
+  if (multiUUIDEnabled && selectedUUIDs.length > 0) {
+    fetchTruppsMulti(selectedUUIDs);
+  } else if (!multiUUIDEnabled && selectedUUID) {
+    fetchTrupps(selectedUUID);
   }
 }
 
@@ -151,15 +156,17 @@ async function renderSettingsUUIDList() {
   }
   // Sortiere und zeige Kategorien
   const sorted = sortUUIDData(uuidData);
-  if (sorted.aktiv.length > 0) {
-    const aktivLabel = document.createElement('div');
-    aktivLabel.style.fontWeight = 'bold';
-    aktivLabel.style.margin = '10px 0 4px 0';
-    aktivLabel.textContent = 'Aktiv (≤ 10 Sekunden)';
-    listDiv.appendChild(aktivLabel);
-    sorted.aktiv.forEach(data => {
+  const renderList = (arr) => {
+    arr.forEach(data => {
+      // Auswahl-Logik anpassen
+      let isSelected = false;
+      if (multiUUIDEnabled) {
+        isSelected = selectedUUIDs.includes(data.uuid);
+      } else {
+        isSelected = data.uuid === selectedUUID;
+      }
       const item = document.createElement('div');
-      item.className = 'uuid-item' + (data.uuid === selectedUUID ? ' selected' : '');
+      item.className = 'uuid-item' + (isSelected ? ' selected' : '');
       item.innerHTML = `
         <div class="uuid-header"><strong>UUID:</strong> ${data.uuid}</div>
         <div class="device-name"><strong>Gerät:</strong> ${data.deviceName}</div>
@@ -167,13 +174,30 @@ async function renderSettingsUUIDList() {
         <div class="timer"><strong>Zeit seit Sync:</strong> ${calculateTimeSince(data.timestamp)}</div>
       `;
       item.onclick = () => {
-        selectedUUID = data.uuid;
-        renderSettingsUUIDList();
-        fetchTrupps(selectedUUID);
-        hideSettingsOverlay();
+        if (multiUUIDEnabled) {
+          if (selectedUUIDs.includes(data.uuid)) {
+            selectedUUIDs = selectedUUIDs.filter(u => u !== data.uuid);
+          } else {
+            selectedUUIDs.push(data.uuid);
+          }
+          renderSettingsUUIDList();
+        } else {
+          selectedUUID = data.uuid;
+          renderSettingsUUIDList();
+          fetchTrupps(selectedUUID);
+          hideSettingsOverlay();
+        }
       };
       listDiv.appendChild(item);
     });
+  };
+  if (sorted.aktiv.length > 0) {
+    const aktivLabel = document.createElement('div');
+    aktivLabel.style.fontWeight = 'bold';
+    aktivLabel.style.margin = '10px 0 4px 0';
+    aktivLabel.textContent = 'Aktiv (≤ 10 Sekunden)';
+    listDiv.appendChild(aktivLabel);
+    renderList(sorted.aktiv);
   }
   if (sorted.inaktiv.length > 0) {
     const inaktivLabel = document.createElement('div');
@@ -181,23 +205,7 @@ async function renderSettingsUUIDList() {
     inaktivLabel.style.margin = '18px 0 4px 0';
     inaktivLabel.textContent = 'Inaktiv (> 10 Sekunden)';
     listDiv.appendChild(inaktivLabel);
-    sorted.inaktiv.forEach(data => {
-      const item = document.createElement('div');
-      item.className = 'uuid-item' + (data.uuid === selectedUUID ? ' selected' : '');
-      item.innerHTML = `
-        <div class="uuid-header"><strong>UUID:</strong> ${data.uuid}</div>
-        <div class="device-name"><strong>Gerät:</strong> ${data.deviceName}</div>
-        <div class="timestamp"><strong>Letzte Sync:</strong> ${formatTimestamp(data.timestamp)}</div>
-        <div class="timer"><strong>Zeit seit Sync:</strong> ${calculateTimeSince(data.timestamp)}</div>
-      `;
-      item.onclick = () => {
-        selectedUUID = data.uuid;
-        renderSettingsUUIDList();
-        fetchTrupps(selectedUUID);
-        hideSettingsOverlay();
-      };
-      listDiv.appendChild(item);
-    });
+    renderList(sorted.inaktiv);
   }
   // Scrollposition wiederherstellen
   if (settingsRight) settingsRight.scrollTop = prevScroll;
@@ -364,151 +372,25 @@ async function showUUIDOverlay(uuids) {
   }, 2000);
 }
 
-async function fetchTrupps(uuid = null, updateUI = true) {
-  try {
-    let url = `${SYNC_API_URL}?token=${encodeURIComponent(OPERATION_TOKEN)}`;
-    if (uuid) {
-      url += `&uuid=${encodeURIComponent(uuid)}`;
-    }
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Fetch failed: ${response.status}`);
-    }
-    const data = await response.json();
-    if (uuid) {
-      // Data is { trupps, timestamp, deviceName }
-      if (updateUI) {
-        lastSyncTimestamp = data.timestamp;
-        document.getElementById('sync-timestamp').textContent = `Sync-Zeitpunkt: ${formatTimestamp(data.timestamp)} (UUID: ${uuid}, Device: ${data.deviceName})`;
-        renderTrupps(data.trupps || []);
-      }
-      return data; // Return the data
-    } else {
-      // All data: { [uuid]: { trupps, timestamp, deviceName } }
-      // For now, aggregate or show all, but since we select UUID, this might not be called without uuid
-      const allTrupps = [];
-      Object.values(data).forEach(uuidData => {
-        allTrupps.push(...(uuidData.trupps || []));
-      });
-      if (updateUI) {
-        lastSyncTimestamp = Math.max(...Object.values(data).map(d => d.timestamp));
-        document.getElementById('sync-timestamp').textContent = `Sync-Zeitpunkt: ${formatTimestamp(lastSyncTimestamp)}`;
-        renderTrupps(allTrupps);
-      }
-      return data; // Return the data
-    }
-  } catch (error) {
-    console.error('Error fetching trupps:', error);
-    throw error; // Re-throw to handle in caller
+// Fehler-Overlay global definieren
+function showErrorOverlay(msg) {
+  let overlay = document.getElementById('error-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'error-overlay';
+    overlay.className = 'overlay';
+    overlay.innerHTML = `<div class="overlay-content"><h2>Fehler</h2><p>${msg}</p><button onclick="document.getElementById('error-overlay').style.display='none'">Schließen</button></div>`;
+    document.body.appendChild(overlay);
+  } else {
+    overlay.querySelector('p').textContent = msg;
   }
+  overlay.style.display = 'flex';
 }
 
-function renderTrupps(trupps) {
-  const container = document.getElementById('trupp-container');
-  container.innerHTML = '';
-  trupps.forEach(trupp => {
-    const card = document.createElement('div');
-    card.className = `trupp-card ${trupp.inaktiv ? 'inaktiv' : 'aktiv'}`;
-    card.id = `trupp-${trupp.id}`;
-
-    // Check for AGT emergency
-    if (trupp.notfallAktiv) {
-      card.classList.add('notfall');
-    }
-
-    // Check for low pressure (below 50 bar)
-    const minPressure = Math.min(...trupp.members.map(m => m.druck));
-    if (minPressure <= 50) {
-      card.classList.add('low-pressure');
-    }
-
-    const title = document.createElement('h2');
-    title.textContent = trupp.name;
-    card.appendChild(title);
-
-    const missionDisplay = document.createElement('div');
-    missionDisplay.id = `mission-${trupp.id}`;
-    missionDisplay.innerHTML = `
-      <strong>Auftrag: ${trupp.mission || 'Kein Auftrag'}</strong>${trupp.previousMission ? `, davor ${trupp.previousMission}` : ''}
-    `;
-    card.appendChild(missionDisplay);
-
-    const agtInfo = document.createElement('p');
-    agtInfo.innerHTML = trupp.members
-      .map(m => `${m.role === 'TF' ? 'Truppführer' : `Truppmann ${m.role.slice(2)}`}: ${m.name} (${m.druck} bar)`)
-      .join('<br>');
-    card.appendChild(agtInfo);
-
-    // Pressure bar for minimum pressure
-    const pressureBarContainer = document.createElement('div');
-    pressureBarContainer.className = 'pressure-bar-container';
-    const pressureBar = document.createElement('div');
-    pressureBar.className = 'pressure-bar';
-    pressureBar.classList.add(
-      minPressure <= 50 ? 'low' : minPressure <= 160 ? 'medium' : 'high'
-    );
-    const maxPressure = 320; // Maximum pressure for scaling
-    pressureBar.style.width = `${(minPressure / maxPressure) * 100}%`;
-    pressureBarContainer.appendChild(pressureBar);
-    card.appendChild(pressureBarContainer);
-
-    const timerDiv = document.createElement('div');
-    timerDiv.id = `timer-${trupp.id}`;
-    timerDiv.className = 'timer-bold';
-    if (!trupp.inaktiv && trupp.startZeit) {
-      const vergangen = Math.floor((Date.now() - trupp.startZeit) / 1000);
-      const min = Math.floor(vergangen / 60).toString().padStart(2, '0');
-      const sec = (vergangen % 60).toString().padStart(2, '0');
-      timerDiv.textContent = `Zeit seit letzter Meldung: ${min}:${sec}`;
-    } else {
-      timerDiv.textContent = 'Trupp hat nicht angelegt';
-    }
-    card.appendChild(timerDiv);
-
-    // Separator for meldungen
-    const separator = document.createElement('div');
-    separator.className = 'meldung-separator';
-    card.appendChild(separator);
-
-    const meldungDiv = document.createElement('div');
-    meldungDiv.id = `meldungen-${trupp.id}`;
-    // Reverse meldungen to show newest first
-    [...trupp.meldungen].reverse().forEach(m => {
-      const p = document.createElement('p');
-      p.textContent = m.members
-        ? `${m.kommentar} (${m.members.map(mem => `${mem.role}: ${mem.druck} bar`).join(', ')})`
-        : m.kommentar;
-      meldungDiv.appendChild(p);
-    });
-    card.appendChild(meldungDiv);
-
-    if (trupp.hatWarnungErhalten) {
-      const warnung = document.createElement('div');
-      warnung.className = 'warnung';
-      warnung.textContent = `⚠️ Warnung: Einer der Träger hat unter 50% Luft.`;
-      card.appendChild(warnung);
-    }
-
-    if (!trupp.inaktiv && trupp.startZeit) {
-      const vergangen = Math.floor((Date.now() - trupp.startZeit) / 1000);
-      if (vergangen > 600) {
-        card.classList.add('alarmphase');
-      } else if (vergangen > 540) {
-        card.classList.add('warnphase');
-      }
-    }
-
-    container.appendChild(card);
-  });
-}
-
-function calculateTimeSince(timestamp) {
-  if (!timestamp) return '-';
-  const now = Date.now();
-  const diff = Math.floor((now - timestamp) / 1000);
-  const min = Math.floor(diff / 60);
-  const sec = diff % 60;
-  return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+function updateMultiUUIDSwitchUI() {
+  const switchEl = document.getElementById('multi-uuid-switch');
+  if (!switchEl) return;
+  switchEl.checked = multiUUIDEnabled;
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -555,6 +437,17 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (settingsList) settingsList.onclick = function(e) {
     if (e.target && e.target.dataset.setting) {
       selectSettingsPanel(e.target.dataset.setting);
+      if (e.target.dataset.setting === 'sync') updateMultiUUIDSwitchUI();
     }
   };
+  // Schieberegler für Mehrfachauswahl
+  const multiSwitch = document.getElementById('multi-uuid-switch');
+  if (multiSwitch) {
+    multiSwitch.onchange = function() {
+      multiUUIDEnabled = multiSwitch.checked;
+      updateMultiUUIDSwitchUI();
+      // Hier könnte die Logik für Mehrfachauswahl ergänzt werden
+    };
+    updateMultiUUIDSwitchUI();
+  }
 });

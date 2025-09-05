@@ -1,7 +1,9 @@
 const CACHE_NAME = 'agt-monitor-cache-v1';
 const ASSETS_TO_CACHE = [
   '/v1/monitoring-client/monitoring.html',
-  '/v1/monitoring-client/mon-style.css',
+  '/v1/monitoring-client/mon-base.css',
+  '/v1/monitoring-client/mon-trupp.css',
+  '/v1/monitoring-client/monitor-ui.js',
   '/v1/monitoring-client/monitor.js',
 ];
 
