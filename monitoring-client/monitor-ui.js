@@ -102,8 +102,10 @@ function renderTrupps(trupps) {
     const timerDiv = document.createElement('div');
     timerDiv.id = `timer-${trupp.id}`;
     timerDiv.className = 'timer-bold';
-    if (!trupp.inaktiv && trupp.startZeit) {
-      const vergangen = Math.floor((Date.now() - trupp.startZeit) / 1000);
+    // Zeit seit letzter Meldung: Nutze lastMeldungZeit, fallback auf startZeit
+    const zeitBasis = trupp.lastMeldungZeit || trupp.startZeit;
+    if (!trupp.inaktiv && zeitBasis) {
+      const vergangen = Math.floor((Date.now() - zeitBasis) / 1000);
       const min = Math.floor(vergangen / 60).toString().padStart(2, '0');
       const sec = (vergangen % 60).toString().padStart(2, '0');
       timerDiv.textContent = `Zeit seit letzter Meldung: ${min}:${sec}`;
@@ -195,8 +197,10 @@ function renderTruppCard(trupp) {
   const timerDiv = document.createElement('div');
   timerDiv.id = `timer-${trupp.id}`;
   timerDiv.className = 'timer-bold';
-  if (!trupp.inaktiv && trupp.startZeit) {
-    const vergangen = Math.floor((Date.now() - trupp.startZeit) / 1000);
+  // Zeit seit letzter Meldung: Nutze lastMeldungZeit, fallback auf startZeit
+  const zeitBasis = trupp.lastMeldungZeit || trupp.startZeit;
+  if (!trupp.inaktiv && zeitBasis) {
+    const vergangen = Math.floor((Date.now() - zeitBasis) / 1000);
     const min = Math.floor(vergangen / 60).toString().padStart(2, '0');
     const sec = (vergangen % 60).toString().padStart(2, '0');
     timerDiv.textContent = `Zeit seit letzter Meldung: ${min}:${sec}`;

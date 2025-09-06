@@ -152,7 +152,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Start automatic sync every 2 seconds
   setInterval(syncTruppsToServer, 2000);
 
-  addTokenButton();
 });
 
 /**

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Atemschutzüberwachung</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="settings.css">
 </head>
 <body>
   <button onclick="window.showTruppForm()">Neuer Trupp</button>
@@ -115,6 +116,35 @@
     Ihr Browser unterstützt das Audio-Element nicht.
   </audio>
 
+  <button id="settings-btn" style="position: fixed; bottom: 10px; right: 10px;">Einstellungen</button>
+
+  <div id="settings-overlay" class="overlay" style="display: none;">
+    <div class="settings-content">
+      <div class="settings-left">
+        <h2>Einstellungen</h2>
+        <ul id="settings-list">
+          <li data-setting="token" class="settings-item selected">Token ändern</li>
+          <li data-setting="takeover" class="settings-item">Übernahmeantrag</li>
+        </ul>
+      </div>
+      <div class="settings-right" id="settings-detail">
+        <div id="setting-token" class="setting-panel">
+          <label for="settings-token-input">Neues Token eingeben:</label>
+          <input type="text" id="settings-token-input" value="">
+          <button id="settings-token-save">Speichern</button>
+        </div>
+        <div id="setting-takeover" class="setting-panel" style="display:none;">
+          <label>Übernahmeantrag stellen:</label>
+          <div id="settings-takeover-uuid-list"></div>
+          <button id="settings-takeover-send" disabled>Antrag senden</button>
+        </div>
+      </div>
+      <button id="settings-close-btn" class="close-btn">×</button>
+    </div>
+  </div>
+
+  <button id="debug-takeover-btn" style="position:fixed;bottom:60px;right:10px;z-index:10001;background:#dc3545;color:white;border:none;border-radius:6px;padding:0.7em 1.2em;font-size:1.1em;box-shadow:0 2px 8px rgba(0,0,0,0.12);cursor:pointer;">Übernahme-Overlay testen</button>
+
   <script src="logic.js"></script>
   <script src="report.js"></script>
   <script src="ui.js"></script>
@@ -122,6 +152,7 @@
   <script src="eventlistener.js"></script>
   <script src="localStorage.js"></script>
   <script src="lib/jspdf.umd.min.js"></script>
+  <script src="dataTakeover.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/v1/client/sw.js')

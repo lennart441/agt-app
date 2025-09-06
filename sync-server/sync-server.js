@@ -128,6 +128,104 @@ app.get('/v1/sync-api/uuids', validateToken, (req, res, next) => {
   }
 });
 
+// Speicher für Übernahmeanträge: { [token]: { [targetUUID]: {requesterUUID, requesterName, timestamp, timeoutId} } }
+const takeoverRequests = {};
+// Speicher für Antworten: { [token]: { [requesterUUID]: {responderUUID, status, timestamp} } }
+const takeoverResponses = {};
+const TAKEOVER_REQUEST_TTL = 60000; // 60 Sekunden
+const TAKEOVER_RESPONSE_TTL = 60000; // 60 Sekunden
+
+// POST: Übernahmeantrag stellen
+app.post('/v1/sync-api/takeover-request', validateToken, (req, res, next) => {
+  try {
+    const { targetUUID, requesterUUID, requesterName, timestamp } = req.body;
+    if (!targetUUID || !requesterUUID || !requesterName || typeof timestamp !== 'number') {
+      return res.status(400).json({ error: 'Invalid takeover request format' });
+    }
+    if (!takeoverRequests[req.operationToken]) takeoverRequests[req.operationToken] = {};
+    // Vorherigen Timeout löschen, falls vorhanden
+    const prev = takeoverRequests[req.operationToken][targetUUID];
+    if (prev && prev.timeoutId) clearTimeout(prev.timeoutId);
+    // Antrag speichern und Timeout setzen
+    const timeoutId = setTimeout(() => {
+      if (takeoverRequests[req.operationToken] && takeoverRequests[req.operationToken][targetUUID]) {
+        delete takeoverRequests[req.operationToken][targetUUID];
+        console.log(`Takeover request for token ${req.operationToken}, targetUUID ${targetUUID} expired and deleted.`);
+      }
+    }, TAKEOVER_REQUEST_TTL);
+    takeoverRequests[req.operationToken][targetUUID] = { requesterUUID, requesterName, timestamp, timeoutId };
+    console.log(`Takeover request stored for token ${req.operationToken}, targetUUID ${targetUUID} by ${requesterName}`);
+    res.json({ status: 'success' });
+  } catch (error) {
+    console.error('Error in POST /v1/sync-api/takeover-request:', error);
+    next(error);
+  }
+});
+
+// GET: Übernahmeantrag abfragen
+app.get('/v1/sync-api/takeover-request', validateToken, (req, res, next) => {
+  try {
+    const { uuid } = req.query;
+    if (!uuid) return res.status(400).json({ error: 'Missing uuid' });
+    const reqs = takeoverRequests[req.operationToken] || {};
+    const takeover = reqs[uuid] || null;
+    if (takeover) {
+      // Nach Auslieferung löschen und Timeout entfernen
+      if (takeover.timeoutId) clearTimeout(takeover.timeoutId);
+      delete takeoverRequests[req.operationToken][uuid];
+      console.log(`Takeover request delivered for token ${req.operationToken}, uuid ${uuid}`);
+      return res.json(takeover);
+    }
+    res.json({});
+  } catch (error) {
+    console.error('Error in GET /v1/sync-api/takeover-request:', error);
+    next(error);
+  }
+});
+
+// POST: Antwort auf Übernahmeantrag
+app.post('/v1/sync-api/takeover-response', validateToken, (req, res, next) => {
+  try {
+    const { requesterUUID, responderUUID, status, timestamp } = req.body;
+    if (!requesterUUID || !responderUUID || !status || typeof timestamp !== 'number') {
+      return res.status(400).json({ error: 'Invalid takeover response format' });
+    }
+    if (!takeoverResponses[req.operationToken]) takeoverResponses[req.operationToken] = {};
+    takeoverResponses[req.operationToken][requesterUUID] = { responderUUID, status, timestamp };
+    // Timeout zum automatischen Löschen der Antwort
+    setTimeout(() => {
+      if (takeoverResponses[req.operationToken] && takeoverResponses[req.operationToken][requesterUUID]) {
+        delete takeoverResponses[req.operationToken][requesterUUID];
+        console.log(`Takeover response for token ${req.operationToken}, requesterUUID ${requesterUUID} expired and deleted.`);
+      }
+    }, TAKEOVER_RESPONSE_TTL);
+    console.log(`Takeover response stored for token ${req.operationToken}, requesterUUID ${requesterUUID}: ${status}`);
+    res.json({ status: 'success' });
+  } catch (error) {
+    console.error('Error in POST /v1/sync-api/takeover-response:', error);
+    next(error);
+  }
+});
+
+// GET: Antwort auf Übernahmeantrag abfragen
+app.get('/v1/sync-api/takeover-response', validateToken, (req, res, next) => {
+  try {
+    const { requesterUUID } = req.query;
+    if (!requesterUUID) return res.status(400).json({ error: 'Missing requesterUUID' });
+    const resps = takeoverResponses[req.operationToken] || {};
+    const response = resps[requesterUUID] || null;
+    if (response) {
+      delete takeoverResponses[req.operationToken][requesterUUID];
+      console.log(`Takeover response delivered for token ${req.operationToken}, requesterUUID ${requesterUUID}: ${response.status}`);
+      return res.json(response);
+    }
+    res.json({});
+  } catch (error) {
+    console.error('Error in GET /v1/sync-api/takeover-response:', error);
+    next(error);
+  }
+});
+
 // Zentraler Error-Handler für alle Fehler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err, 'Request:', req.method, req.originalUrl);
