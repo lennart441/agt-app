@@ -145,14 +145,48 @@
 
   <button id="debug-takeover-btn" style="position:fixed;bottom:60px;right:10px;z-index:10001;background:#dc3545;color:white;border:none;border-radius:6px;padding:0.7em 1.2em;font-size:1.1em;box-shadow:0 2px 8px rgba(0,0,0,0.12);cursor:pointer;">Übernahme-Overlay testen</button>
 
+  <!-- Takeover Overlay -->
+  <div id="takeover-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:10002; align-items:center; justify-content:center;">
+    <div style="background:#fff;padding:2em 2.5em;border-radius:10px;box-shadow:0 2px 16px rgba(0,0,0,0.18);min-width:320px;text-align:center;">
+      <h2>Übernahmeantrag</h2>
+      <p><strong>Gerät:</strong> <span id="takeover-device-name"></span></p>
+      <p><strong>UUID:</strong> <span id="takeover-device-uuid"></span></p>
+      <div style="margin-top:2em;">
+        <button id="takeover-confirm-btn" style="background:#28a745;color:#fff;padding:0.7em 1.5em;border:none;border-radius:6px;font-size:1em;margin-right:1em;cursor:pointer;">Annehmen</button>
+        <button id="takeover-decline-btn" style="background:#dc3545;color:#fff;padding:0.7em 1.5em;border:none;border-radius:6px;font-size:1em;cursor:pointer;">Ablehnen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Takeover Loading Overlay -->
+  <div id="takeover-loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:10003; align-items:center; justify-content:center;">
+    <div style="background:#fff;padding:2em 2.5em;border-radius:10px;box-shadow:0 2px 16px rgba(0,0,0,0.18);min-width:320px;text-align:center;">
+      <div style="margin-bottom:1.5em;">
+        <div class="spinner" style="width:48px;height:48px;margin:auto;border:6px solid #eee;border-top:6px solid #007bff;border-radius:50%;animation:spin 1s linear infinite;"></div>
+      </div>
+      <h2>Warte auf Bestätigung...</h2>
+      <p>Der Übernahmeantrag wurde gesendet.<br>Bitte warte auf die Antwort des aktuellen Geräts.</p>
+    </div>
+    <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+  </div>
+
+  <!-- Takeover Confirmation Overlay -->
+  <div id="takeover-confirmation-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:10004; align-items:center; justify-content:center;">
+    <div style="background:#fff; color:#007bff; padding:32px; border-radius:8px; min-width:280px; max-width:90vw; text-align:center; box-shadow:0 2px 16px rgba(0,0,0,0.2);">
+      <h2 id="takeover-confirmation-title">Bestätigung</h2>
+      <div id="takeover-confirmation-message"></div>
+      <button onclick="document.getElementById('takeover-confirmation-overlay').style.display='none'" style="margin-top:16px;">Schließen</button>
+    </div>
+  </div>
+
   <script src="logic.js"></script>
   <script src="report.js"></script>
   <script src="ui.js"></script>
   <script src="overlays.js"></script>
+  <script src="dataTakeover.js"></script>
   <script src="eventlistener.js"></script>
   <script src="localStorage.js"></script>
   <script src="lib/jspdf.umd.min.js"></script>
-  <script src="dataTakeover.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/v1/client/sw.js')

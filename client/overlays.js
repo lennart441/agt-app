@@ -442,80 +442,42 @@ function confirmNotfall(truppId, isEndNotfall) {
   if (typeof renderAllTrupps === 'function') renderAllTrupps();
 }
 
-window.showTakeoverOverlay = function(requesterUUID, requesterName) {
-    let overlay = document.getElementById('takeover-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'takeover-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100vw';
-        overlay.style.height = '100vh';
-        overlay.style.background = 'rgba(0,0,0,0.6)';
-        overlay.style.zIndex = '10002';
-        overlay.style.display = 'flex';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        document.body.appendChild(overlay);
-    }
-    overlay.innerHTML = `
-        <div style="background:#fff;padding:2em 2.5em;border-radius:10px;box-shadow:0 2px 16px rgba(0,0,0,0.18);min-width:320px;text-align:center;">
-            <h2>Übernahmeantrag</h2>
-            <p><strong>Gerät:</strong> ${requesterName}</p>
-            <p><strong>UUID:</strong> ${requesterUUID}</p>
-            <div style="margin-top:2em;">
-                <button id="takeover-confirm-btn" style="background:#28a745;color:#fff;padding:0.7em 1.5em;border:none;border-radius:6px;font-size:1em;margin-right:1em;cursor:pointer;">Annehmen</button>
-                <button id="takeover-decline-btn" style="background:#dc3545;color:#fff;padding:0.7em 1.5em;border:none;border-radius:6px;font-size:1em;cursor:pointer;">Ablehnen</button>
-            </div>
-        </div>
-    `;
+window.showTakeoverConfirmationOverlay = function(message) {
+    const overlay = document.getElementById('takeover-confirmation-overlay');
+    document.getElementById('takeover-confirmation-message').textContent = message;
     overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+};
+
+window.showTakeoverOverlay = function(requesterUUID, requesterName) {
+    const overlay = document.getElementById('takeover-overlay');
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    document.getElementById('takeover-device-name').textContent = requesterName;
+    document.getElementById('takeover-device-uuid').textContent = requesterUUID;
     document.getElementById('takeover-confirm-btn').onclick = async function() {
         overlay.style.display = 'none';
         const success = await window.sendTakeoverResponse(requesterUUID, 'accepted');
         if (success) {
-            alert('Übernahme wurde bestätigt!');
+            window.showTakeoverConfirmationOverlay('Übernahme wurde bestätigt!');
         }
     };
     document.getElementById('takeover-decline-btn').onclick = async function() {
         overlay.style.display = 'none';
         const success = await window.sendTakeoverResponse(requesterUUID, 'declined');
         if (success) {
-            alert('Übernahme wurde abgelehnt!');
+            window.showTakeoverConfirmationOverlay('Übernahme wurde abgelehnt!');
         }
     };
 };
 
 window.showTakeoverLoadingOverlay = function() {
-    let overlay = document.getElementById('takeover-loading-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'takeover-loading-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100vw';
-        overlay.style.height = '100vh';
-        overlay.style.background = 'rgba(0,0,0,0.6)';
-        overlay.style.zIndex = '10003';
-        overlay.style.display = 'flex';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        overlay.innerHTML = `
-            <div style="background:#fff;padding:2em 2.5em;border-radius:10px;box-shadow:0 2px 16px rgba(0,0,0,0.18);min-width:320px;text-align:center;">
-                <div style="margin-bottom:1.5em;">
-                    <div class="spinner" style="width:48px;height:48px;margin:auto;border:6px solid #eee;border-top:6px solid #007bff;border-radius:50%;animation:spin 1s linear infinite;"></div>
-                </div>
-                <h2>Warte auf Bestätigung...</h2>
-                <p>Der Übernahmeantrag wurde gesendet.<br>Bitte warte auf die Antwort des aktuellen Geräts.</p>
-            </div>
-            <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
-        `;
-        document.body.appendChild(overlay);
-    } else {
-        overlay.style.display = 'flex';
-    }
+    const overlay = document.getElementById('takeover-loading-overlay');
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
 };
 window.hideTakeoverLoadingOverlay = function() {
     const overlay = document.getElementById('takeover-loading-overlay');

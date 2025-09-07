@@ -143,18 +143,16 @@ app.post('/v1/sync-api/takeover-request', validateToken, (req, res, next) => {
       return res.status(400).json({ error: 'Invalid takeover request format' });
     }
     if (!takeoverRequests[req.operationToken]) takeoverRequests[req.operationToken] = {};
-    // Vorherigen Timeout löschen, falls vorhanden
     const prev = takeoverRequests[req.operationToken][targetUUID];
     if (prev && prev.timeoutId) clearTimeout(prev.timeoutId);
-    // Antrag speichern und Timeout setzen
     const timeoutId = setTimeout(() => {
       if (takeoverRequests[req.operationToken] && takeoverRequests[req.operationToken][targetUUID]) {
         delete takeoverRequests[req.operationToken][targetUUID];
-        console.log(`Takeover request for token ${req.operationToken}, targetUUID ${targetUUID} expired and deleted.`);
+        console.log(`[DEBUG] Takeover request for token ${req.operationToken}, targetUUID ${targetUUID} expired and deleted.`);
       }
     }, TAKEOVER_REQUEST_TTL);
     takeoverRequests[req.operationToken][targetUUID] = { requesterUUID, requesterName, timestamp, timeoutId };
-    console.log(`Takeover request stored for token ${req.operationToken}, targetUUID ${targetUUID} by ${requesterName}`);
+    console.log(`[DEBUG] Takeover request stored: token=${req.operationToken}, targetUUID=${targetUUID}, requesterUUID=${requesterUUID}, requesterName=${requesterName}, timestamp=${timestamp}`);
     res.json({ status: 'success' });
   } catch (error) {
     console.error('Error in POST /v1/sync-api/takeover-request:', error);
@@ -170,10 +168,9 @@ app.get('/v1/sync-api/takeover-request', validateToken, (req, res, next) => {
     const reqs = takeoverRequests[req.operationToken] || {};
     const takeover = reqs[uuid] || null;
     if (takeover) {
-      // Nach Auslieferung löschen und Timeout entfernen
       if (takeover.timeoutId) clearTimeout(takeover.timeoutId);
       delete takeoverRequests[req.operationToken][uuid];
-      console.log(`Takeover request delivered for token ${req.operationToken}, uuid ${uuid}`);
+      console.log(`[DEBUG] Takeover request delivered: token=${req.operationToken}, uuid=${uuid}, requesterUUID=${takeover.requesterUUID}, requesterName=${takeover.requesterName}, timestamp=${takeover.timestamp}`);
       return res.json(takeover);
     }
     res.json({});
@@ -192,14 +189,13 @@ app.post('/v1/sync-api/takeover-response', validateToken, (req, res, next) => {
     }
     if (!takeoverResponses[req.operationToken]) takeoverResponses[req.operationToken] = {};
     takeoverResponses[req.operationToken][requesterUUID] = { responderUUID, status, timestamp };
-    // Timeout zum automatischen Löschen der Antwort
     setTimeout(() => {
       if (takeoverResponses[req.operationToken] && takeoverResponses[req.operationToken][requesterUUID]) {
         delete takeoverResponses[req.operationToken][requesterUUID];
-        console.log(`Takeover response for token ${req.operationToken}, requesterUUID ${requesterUUID} expired and deleted.`);
+        console.log(`[DEBUG] Takeover response for token ${req.operationToken}, requesterUUID ${requesterUUID} expired and deleted.`);
       }
     }, TAKEOVER_RESPONSE_TTL);
-    console.log(`Takeover response stored for token ${req.operationToken}, requesterUUID ${requesterUUID}: ${status}`);
+    console.log(`[DEBUG] Takeover response stored: token=${req.operationToken}, requesterUUID=${requesterUUID}, responderUUID=${responderUUID}, status=${status}, timestamp=${timestamp}`);
     res.json({ status: 'success' });
   } catch (error) {
     console.error('Error in POST /v1/sync-api/takeover-response:', error);
@@ -216,7 +212,7 @@ app.get('/v1/sync-api/takeover-response', validateToken, (req, res, next) => {
     const response = resps[requesterUUID] || null;
     if (response) {
       delete takeoverResponses[req.operationToken][requesterUUID];
-      console.log(`Takeover response delivered for token ${req.operationToken}, requesterUUID ${requesterUUID}: ${response.status}`);
+      console.log(`[DEBUG] Takeover response delivered: token=${req.operationToken}, requesterUUID=${requesterUUID}, responderUUID=${response.responderUUID}, status=${response.status}, timestamp=${response.timestamp}`);
       return res.json(response);
     }
     res.json({});
@@ -226,8 +222,96 @@ app.get('/v1/sync-api/takeover-response', validateToken, (req, res, next) => {
   }
 });
 
-// Zentraler Error-Handler für alle Fehler
+// --- Datenübernahme: Prüfsumme und Bestätigung ---
+const takeoverChecksums = {}; // { [token]: { [oldUUID]: { checksum, newUUID, timestamp } } }
+const takeoverConfirms = {}; // { [token]: { [newUUID]: { confirmed: true, timestamp } } }
+const TAKEOVER_CHECKSUM_TTL = 60000;
+const TAKEOVER_CONFIRM_TTL = 60000;
+
+// POST: Neuer Client sendet Prüfsumme
+app.post('/v1/sync-api/takeover-checksum', validateToken, (req, res, next) => {
+  try {
+    const { oldUUID, newUUID, checksum, timestamp } = req.body;
+    if (!oldUUID || !newUUID || typeof checksum === 'undefined' || typeof timestamp !== 'number') {
+      return res.status(400).json({ error: 'Invalid takeover checksum format' });
+    }
+    if (!takeoverChecksums[req.operationToken]) takeoverChecksums[req.operationToken] = {};
+    takeoverChecksums[req.operationToken][oldUUID] = { checksum, newUUID, timestamp };
+    setTimeout(() => {
+      if (takeoverChecksums[req.operationToken] && takeoverChecksums[req.operationToken][oldUUID]) {
+        delete takeoverChecksums[req.operationToken][oldUUID];
+        console.log(`[DEBUG] Checksum entry for token ${req.operationToken}, oldUUID ${oldUUID} expired and deleted.`);
+      }
+    }, TAKEOVER_CHECKSUM_TTL);
+    console.log(`[DEBUG] Takeover checksum received: token=${req.operationToken}, oldUUID=${oldUUID}, newUUID=${newUUID}, checksum=${checksum}, timestamp=${timestamp}`);
+    res.json({ status: 'success' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET: Alter Client fragt Prüfsumme ab
+app.get('/v1/sync-api/takeover-checksum', validateToken, (req, res, next) => {
+  try {
+    const { oldUUID } = req.query;
+    if (!oldUUID) return res.status(400).json({ error: 'Missing oldUUID' });
+    const checksums = takeoverChecksums[req.operationToken] || {};
+    const entry = checksums[oldUUID] || null;
+    if (entry) {
+      delete takeoverChecksums[req.operationToken][oldUUID];
+      console.log(`[DEBUG] Takeover checksum delivered to oldUUID ${oldUUID}: checksum=${entry.checksum}, newUUID=${entry.newUUID}`);
+      return res.json(entry);
+    }
+    res.json({});
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST: Bestätigung der Datenübernahme
+app.post('/v1/sync-api/takeover-confirm', validateToken, (req, res, next) => {
+  try {
+    const { newUUID, timestamp } = req.body;
+    if (!newUUID || typeof timestamp !== 'number') {
+      return res.status(400).json({ error: 'Invalid takeover confirm format' });
+    }
+    if (!takeoverConfirms[req.operationToken]) takeoverConfirms[req.operationToken] = {};
+    takeoverConfirms[req.operationToken][newUUID] = { confirmed: true, timestamp };
+    setTimeout(() => {
+      if (takeoverConfirms[req.operationToken] && takeoverConfirms[req.operationToken][newUUID]) {
+        delete takeoverConfirms[req.operationToken][newUUID];
+        console.log(`[DEBUG] Takeover confirm for token ${req.operationToken}, newUUID ${newUUID} expired and deleted.`);
+      }
+    }, TAKEOVER_CONFIRM_TTL);
+    console.log(`[DEBUG] Takeover confirm stored: token=${req.operationToken}, newUUID=${newUUID}, timestamp=${timestamp}`);
+    res.json({ status: 'success' });
+  } catch (error) {
+    console.error('Error in POST /v1/sync-api/takeover-confirm:', error);
+    next(error);
+  }
+});
+
+// GET: Abfrage der Bestätigung
+app.get('/v1/sync-api/takeover-confirm', validateToken, (req, res, next) => {
+  try {
+    const { newUUID } = req.query;
+    if (!newUUID) return res.status(400).json({ error: 'Missing newUUID' });
+    const confims = takeoverConfirms[req.operationToken] || {};
+    const confirm = confims[newUUID] || null;
+    if (confirm) {
+      delete takeoverConfirms[req.operationToken][newUUID];
+      console.log(`[DEBUG] Takeover confirm delivered to newUUID ${newUUID}: confirmed=${confirm.confirmed}, timestamp=${confirm.timestamp}`);
+      return res.json(confirm);
+    }
+    res.json({});
+  } catch (error) {
+    console.error('Error in GET /v1/sync-api/takeover-confirm:', error);
+    next(error);
+  }
+});
+
+// Fehlerbehandlung-Middleware
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err, 'Request:', req.method, req.originalUrl);
+  console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });

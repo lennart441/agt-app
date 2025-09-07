@@ -146,9 +146,12 @@ window.pollTakeoverResponse = function(targetUUID) {
                     window.hideTakeoverLoadingOverlay();
                     clearInterval(pollInterval);
                     if (data.status === 'accepted') {
-                        alert('Übernahme bestätigt!');
+                        console.log('Übernahmeantrag angenommen. Rufe Daten ab...');
+                        // Daten von der alten UUID abrufen und speichern
+                        await window.fetchAndStoreTakeoverData(targetUUID);
+                        window.showTakeoverConfirmationOverlay('Übernahme bestätigt!');
                     } else if (data.status === 'declined') {
-                        alert('Übernahme abgelehnt!');
+                        window.showTakeoverConfirmationOverlay('Übernahme abgelehnt!');
                     }
                 }
             }

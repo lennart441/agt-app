@@ -1,10 +1,20 @@
 // AGT-Trupp Local Storage Interface
 // Speichert, lädt und verwaltet Truppdaten im Local Storage
 
-const LOCAL_STORAGE_KEY = 'agt_trupps_v2';
+const TRUPPS_KEY = 'agt_trupps_v2';
+
+// Helper-Funktionen für localStorage
+window.saveTruppsToLocalStorage = function(trupps) {
+    localStorage.setItem(TRUPPS_KEY, JSON.stringify(trupps));
+};
+
+window.loadTruppsFromLocalStorage = function() {
+    const data = localStorage.getItem(TRUPPS_KEY);
+    return data ? JSON.parse(data) : [];
+};
 
 window.getAllTrupps = function() {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const raw = localStorage.getItem(TRUPPS_KEY);
     if (!raw) return [];
     try {
         return JSON.parse(raw);
@@ -22,7 +32,7 @@ window.saveTrupp = function(trupp) {
     } else {
         trupps.push(trupp);
     }
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(trupps));
+    localStorage.setItem(TRUPPS_KEY, JSON.stringify(trupps));
     if (typeof renderAllTrupps === 'function') renderAllTrupps();
 }
 
@@ -36,7 +46,7 @@ window.updateTrupp = function(id, changes) {
     const idx = trupps.findIndex(t => t.id === id);
     if (idx >= 0) {
         trupps[idx] = { ...trupps[idx], ...changes };
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(trupps));
+        localStorage.setItem(TRUPPS_KEY, JSON.stringify(trupps));
         if (typeof renderAllTrupps === 'function') renderAllTrupps();
         return trupps[idx];
     }
@@ -46,7 +56,7 @@ window.updateTrupp = function(id, changes) {
 window.deleteTrupp = function(id) {
     let trupps = window.getAllTrupps();
     trupps = trupps.filter(t => t.id !== id);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(trupps));
+    localStorage.setItem(TRUPPS_KEY, JSON.stringify(trupps));
     if (typeof renderAllTrupps === 'function') renderAllTrupps();
 }
 
