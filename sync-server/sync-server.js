@@ -47,11 +47,16 @@ function validateToken(req, res, next) {
 }
 
 // Speichert Truppdaten für ein Token und eine UUID
-function saveTruppData(token, deviceUUID, trupps, timestamp, deviceName) {
+function saveTruppData(token, deviceUUID, trupps, timestamp, deviceName, newUUID = null) {
   if (!operations[token]) {
     operations[token] = {};
   }
-  operations[token][deviceUUID] = { trupps, timestamp, deviceName };
+  const data = { trupps, timestamp, deviceName };
+  if (newUUID) {
+    data.futureUUID = newUUID; // Setze futureUUID, wenn newUUID vorhanden
+    console.log(`[DEBUG] futureUUID gesetzt für token ${token}, deviceUUID ${deviceUUID} auf ${newUUID}`);
+  }
+  operations[token][deviceUUID] = data;
 }
 
 // Lädt Truppdaten für ein Token (alle UUIDs oder spezifische UUID)
@@ -85,14 +90,14 @@ loadTokens().then(() => {
 // POST-Endpoint: Empfängt und speichert Truppdaten
 app.post('/v1/sync-api/trupps', validateToken, (req, res, next) => {
   try {
-    const { trupps, timestamp, deviceUUID, deviceName } = req.body;
+    const { trupps, timestamp, deviceUUID, deviceName, newUUID } = req.body;
     // Validierung der Eingabedaten
     if (!Array.isArray(trupps) || typeof timestamp !== 'number' || isNaN(new Date(timestamp).getTime()) || !deviceUUID || !deviceName) {
       console.warn(`Validation failed for token ${req.operationToken}: trupps=${JSON.stringify(trupps)}, timestamp=${timestamp}, deviceUUID=${deviceUUID}, deviceName=${deviceName}`);
       return res.status(400).json({ error: 'Invalid trupps, timestamp, deviceUUID, or deviceName format' });
     }
-    saveTruppData(req.operationToken, deviceUUID, trupps, timestamp, deviceName);
-    console.log(`Received data for token ${req.operationToken}, UUID ${deviceUUID}, Device ${deviceName} at ${new Date(timestamp).toISOString()}`);
+    saveTruppData(req.operationToken, deviceUUID, trupps, timestamp, deviceName, newUUID);
+    console.log(`Received data for token ${req.operationToken}, UUID ${deviceUUID}, Device ${deviceName} at ${new Date(timestamp).toISOString()}${newUUID ? `, newUUID: ${newUUID}` : ''}`);
     res.json({ status: 'success', timestamp });
   } catch (error) {
     console.error(`Error in POST /v1/sync-api/trupps for token ${req.operationToken}:`, error);
@@ -297,7 +302,27 @@ app.get('/v1/sync-api/takeover-confirm', validateToken, (req, res, next) => {
     const { newUUID } = req.query;
     if (!newUUID) return res.status(400).json({ error: 'Missing newUUID' });
     const confims = takeoverConfirms[req.operationToken] || {};
-    const confirm = confims[newUUID] || null;
+    let confirm = confims[newUUID] || null;
+    if (!confirm) {
+      // Prüfe, ob newUUID mit einer futureUUID übereinstimmt
+      const operationsData = operations[req.operationToken] || {};
+      for (const uuid in operationsData) {
+        if (operationsData[uuid].futureUUID === newUUID) {
+          // Setze Bestätigung
+          if (!takeoverConfirms[req.operationToken]) takeoverConfirms[req.operationToken] = {};
+          takeoverConfirms[req.operationToken][newUUID] = { confirmed: true, timestamp: Date.now() };
+          setTimeout(() => {
+            if (takeoverConfirms[req.operationToken] && takeoverConfirms[req.operationToken][newUUID]) {
+              delete takeoverConfirms[req.operationToken][newUUID];
+              console.log(`[DEBUG] Takeover confirm for token ${req.operationToken}, newUUID ${newUUID} expired and deleted.`);
+            }
+          }, TAKEOVER_CONFIRM_TTL);
+          confirm = takeoverConfirms[req.operationToken][newUUID];
+          console.log(`[DEBUG] Takeover confirm gesetzt für newUUID ${newUUID}, da futureUUID übereinstimmt.`);
+          break;
+        }
+      }
+    }
     if (confirm) {
       delete takeoverConfirms[req.operationToken][newUUID];
       console.log(`[DEBUG] Takeover confirm delivered to newUUID ${newUUID}: confirmed=${confirm.confirmed}, timestamp=${confirm.timestamp}`);

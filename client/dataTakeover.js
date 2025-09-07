@@ -8,7 +8,162 @@ let takeoverPending = false;
 let futureUUID = null;
 let lastChecksum = null;
 
-// Pollt alle 2 Sekunden auf Übernahmeantrag
+/**
+ * Hilfsfunktion für Debug-Ausgaben mit Client-Typ und Schritt-Info.
+ * @param {string} clientType - 'Alter Client' oder 'Neuer Client'.
+ * @param {number} step - Schritt im Prozess (1-5).
+ * @param {string} message - Die Debug-Nachricht.
+ */
+function debugLog(clientType, step, message) {
+    console.log(`[DEBUG] [${clientType}, Schritt ${step}] ${message}`);
+}
+
+/**
+ * Hilfsfunktion: Lädt verfügbare UUIDs vom Server.
+ * @param {string} token - Operationstoken.
+ */
+async function loadAvailableUUIDs(token) {
+    try {
+        const url = `${window.SYNC_API_URL.replace('/trupps', '/uuids')}?token=${encodeURIComponent(token)}`;
+        const res = await fetch(url);
+        if (!res.ok) {
+            debugLog('Neuer Client', 2, `UUIDs Response Error: ${res.status}, ${await res.text()}`);
+            return [];
+        }
+        const data = await res.json();
+        debugLog('Neuer Client', 2, `UUIDs Response Data: ${JSON.stringify(data)}`);
+        return data.uuids || [];
+    } catch (e) {
+        debugLog('Neuer Client', 2, `UUIDs Fetch Exception: ${e}`);
+        return [];
+    }
+}
+
+/**
+ * Zeigt die UUID-Liste im Übernahmeantrag (UI-bezogen, aber hier für Konsistenz).
+ */
+async function showTakeoverUUIDList() {
+    const listDiv = document.getElementById('settings-takeover-uuid-list');
+    if (!listDiv) return;
+    listDiv.innerHTML = '<div>Lade UUIDs...</div>';
+    const uuids = await loadAvailableUUIDs(window.OPERATION_TOKEN);
+    debugLog('Neuer Client', 2, `UUIDs vom Server: ${uuids}`);
+    // Eigene UUID herausfiltern
+    const filtered = uuids.filter(uuid => uuid !== window.DEVICE_UUID);
+    if (!filtered.length) {
+        listDiv.innerHTML = '<div class="no-uuid-message">Keine anderen Geräte gefunden.</div>';
+        document.getElementById('settings-takeover-send').disabled = true;
+        return;
+    }
+    let selectedUUID = null;
+    listDiv.innerHTML = filtered.map(uuid => `<div class="uuid-item" data-uuid="${uuid}">${uuid}</div>`).join('');
+    const items = listDiv.querySelectorAll('.uuid-item');
+    items.forEach(item => {
+        item.onclick = function() {
+            items.forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+            selectedUUID = item.getAttribute('data-uuid');
+            document.getElementById('settings-takeover-send').disabled = false;
+            document.getElementById('settings-takeover-send').dataset.uuid = selectedUUID;
+        };
+    });
+    document.getElementById('settings-takeover-send').disabled = true;
+}
+
+/**
+ * Erstellt eine einfache Prüfsumme aus den Truppdaten (für Datenvalidierung).
+ * @param {Array} trupps - Array der Truppdaten.
+ * @returns {string} - Einfacher Hash der Daten.
+ */
+function createChecksum(trupps) {
+    const dataString = JSON.stringify(trupps);
+    let hash = 0;
+    for (let i = 0; i < dataString.length; i++) {
+        const char = dataString.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Konvertiere zu 32bit integer
+    }
+    return hash.toString();
+}
+
+/**
+ * Sendet einen Übernahmeantrag.
+ * Reihenfolge: Schritt 2 im Prozess - wird vom neuen Client ausgeführt.
+ * @param {string} targetUUID - UUID des Zielgeräts (alter Client).
+ */
+window.sendTakeoverRequest = async function(targetUUID) {
+    try {
+        const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-request')}`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Operation-Token': window.OPERATION_TOKEN
+            },
+            body: JSON.stringify({
+                targetUUID,
+                requesterUUID: window.DEVICE_UUID,
+                requesterName: window.DEVICE_NAME || 'Unbekannt',
+                timestamp: Date.now()
+            })
+        });
+        if (!res.ok) {
+            debugLog('Neuer Client', 2, `Takeover Request Error: ${res.status}, ${await res.text()}`);
+            return false;
+        }
+        debugLog('Neuer Client', 2, `Takeover Request sent for UUID: ${targetUUID}`);
+        // Nach Absenden: Einstellungen schließen und Lade-Overlay anzeigen
+        window.closeSettingsOverlay();
+        window.showTakeoverLoadingOverlay();
+        // Starte Polling auf Antwort
+        window.pollTakeoverResponse(targetUUID);
+        return true;
+    } catch (e) {
+        debugLog('Neuer Client', 2, `Takeover Request Exception: ${e}`);
+        return false;
+    }
+};
+
+/**
+ * Pollt auf Antwort vom alten Client.
+ * Reihenfolge: Teil von Schritt 2 - wird vom neuen Client ausgeführt.
+ * @param {string} targetUUID - UUID des Zielgeräts.
+ */
+window.pollTakeoverResponse = function(targetUUID) {
+    let pollInterval = setInterval(async () => {
+        try {
+            const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-response')}?token=${window.OPERATION_TOKEN}&requesterUUID=${window.DEVICE_UUID}`;
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.status) {
+                    window.hideTakeoverLoadingOverlay();
+                    clearInterval(pollInterval);
+                    if (data.status === 'accepted') {
+                        debugLog('Neuer Client', 2, 'Übernahmeantrag angenommen. Rufe Daten ab...');
+                        // Daten von der alten UUID abrufen und speichern
+                        await window.fetchAndStoreTakeoverData(targetUUID);
+                        // Nach dem Speichern: Polle auf endgültige Bestätigung (Schritt 4)
+                        window.pollTakeoverConfirm(targetUUID);
+                        window.showTakeoverConfirmationOverlay('Übernahme bestätigt!');
+                    } else if (data.status === 'declined') {
+                        debugLog('Neuer Client', 2, 'Übernahmeantrag abgelehnt.');
+                        window.showTakeoverConfirmationOverlay('Übernahme abgelehnt!');
+                    }
+                }
+            }
+        } catch (e) {
+            debugLog('Neuer Client', 2, `Fehler beim Polling der Antwort: ${e}`);
+        }
+    }, 2000);
+};
+
+/**
+ * Startet das Polling auf Übernahmeanträge.
+ * Reihenfolge: Schritt 1 im Prozess - wird vom alten Client ausgeführt, um auf Anträge vom neuen Client zu warten.
+ * @param {string} deviceUUID - UUID des aktuellen Geräts (alter Client).
+ * @param {string} token - Operationstoken.
+ */
 function startTakeoverPolling(deviceUUID, token) {
     if (takeoverPollingInterval) return;
     takeoverPollingInterval = setInterval(async () => {
@@ -18,13 +173,13 @@ function startTakeoverPolling(deviceUUID, token) {
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.requesterUUID && deviceUUID === window.DEVICE_UUID) {
-                    console.log(`[DEBUG] Übernahmeantrag für eigene UUID erkannt: ${deviceUUID} von ${data.requesterName} (${data.requesterUUID})`);
+                    debugLog('Alter Client', 1, `Übernahmeantrag für eigene UUID erkannt: ${deviceUUID} von ${data.requesterName} (${data.requesterUUID})`);
                     window.showTakeoverOverlay(data.requesterUUID, data.requesterName);
                 }
                 if (data && data.requesterUUID) {
                     if (!takeoverPending) {
                         takeoverPending = true;
-                        console.log(`[DEBUG] takeoverPending gesetzt für UUID ${deviceUUID}`);
+                        debugLog('Alter Client', 1, `takeoverPending gesetzt für UUID ${deviceUUID}`);
                     }
                 } else {
                     takeoverPending = false;
@@ -38,18 +193,38 @@ function startTakeoverPolling(deviceUUID, token) {
                 if (!takeoverPending) {
                     takeoverPending = true;
                     futureUUID = data2.futureUUID;
-                    console.log(`[DEBUG] futureUUID erkannt: ${futureUUID} (alt: ${deviceUUID})`);
+                    debugLog('Alter Client', 1, `futureUUID erkannt: ${futureUUID} (alt: ${deviceUUID})`);
                     showTakeoverOverlay(futureUUID, data2.deviceName);
                 }
             }
-
+            // Prüfsumme abrufen und validieren (für Datenvalidierung)
+            const checksumUrl = `${window.SYNC_API_URL.replace('/trupps', '/takeover-checksum')}?token=${token}&oldUUID=${deviceUUID}`;
+            const checksumRes = await fetch(checksumUrl);
+            if (checksumRes.ok) {
+                const checksumData = await checksumRes.json();
+                if (checksumData && checksumData.checksum) {
+                    const localTrupps = window.getAllTrupps();
+                    const localChecksum = createChecksum(localTrupps);
+                    if (localChecksum === checksumData.checksum) {
+                        debugLog('Alter Client', 3, `Prüfsumme validiert für oldUUID ${deviceUUID}. Setze futureUUID auf ${checksumData.newUUID}.`);
+                        // Server benachrichtigen (z. B. über Sync, aber hier simulieren wir es)
+                        // In der Praxis: Ändere den Upload, um newUUID zu setzen
+                        window.syncTruppsToServerWithNewUUID(checksumData.newUUID);
+                    } else {
+                        debugLog('Alter Client', 3, `Prüfsumme-Fehler für oldUUID ${deviceUUID}: erwartet ${localChecksum}, erhalten ${checksumData.checksum}`);
+                    }
+                }
+            }
         } catch (e) {
-            console.log('[DEBUG] Fehler im takeoverPolling:', e);
+            debugLog('Alter Client', 1, `Fehler im takeoverPolling: ${e}`);
         }
     }, 2000);
 }
 
-// Stoppt das Polling
+/**
+ * Stoppt das Polling auf Übernahmeanträge.
+ * Reihenfolge: Wird aufgerufen, um das Polling zu beenden, typischerweise nach Abschluss der Übernahme (alter Client).
+ */
 function stopTakeoverPolling() {
     if (takeoverPollingInterval) {
         clearInterval(takeoverPollingInterval);
@@ -57,8 +232,12 @@ function stopTakeoverPolling() {
     }
 }
 
-// Entferne die alte showTakeoverOverlay-Funktion aus dataTakeover.js
-
+/**
+ * Sendet die Antwort auf einen Übernahmeantrag.
+ * Reihenfolge: Schritt 3 im Prozess - wird vom alten Client ausgeführt, nachdem ein Antrag erkannt wurde.
+ * @param {string} requesterUUID - UUID des anfragenden Geräts (neuer Client).
+ * @param {string} status - Status der Antwort (z.B. 'accepted' oder 'rejected').
+ */
 window.sendTakeoverResponse = async function(requesterUUID, status) {
     try {
         const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-response')}`;
@@ -76,8 +255,10 @@ window.sendTakeoverResponse = async function(requesterUUID, status) {
             })
         });
         if (!res.ok) throw new Error(await res.text());
+        debugLog('Alter Client', 3, `Takeover Response gesendet: ${status} für requesterUUID ${requesterUUID}`);
         return true;
     } catch (e) {
+        debugLog('Alter Client', 3, `Fehler beim Senden der Übernahme-Antwort: ${e.message}`);
         window.showErrorOverlay('Fehler beim Senden der Übernahme-Antwort: ' + e.message);
         return false;
     }
@@ -85,63 +266,145 @@ window.sendTakeoverResponse = async function(requesterUUID, status) {
 
 /**
  * Pollt den Server auf die endgültige Bestätigung der Datenübernahme.
- * @param {string} oldUUID Die alte UUID des Geräts, von dem die Daten übernommen wurden.
+ * Reihenfolge: Schritt 4 im Prozess - wird vom neuen Client ausgeführt, um auf Bestätigung zu warten.
+ * @param {string} oldUUID - UUID des alten Geräts, von dem die Daten übernommen werden.
  */
 window.pollTakeoverConfirm = function(oldUUID) {
     if (!oldUUID && window.TAKEOVER_OLD_UUID) oldUUID = window.TAKEOVER_OLD_UUID;
-    console.log('[DEBUG] Starte pollTakeoverConfirm mit oldUUID:', oldUUID);
+    debugLog('Neuer Client', 4, `Starte pollTakeoverConfirm mit oldUUID: ${oldUUID}`);
     let pollInterval = setInterval(async () => {
         try {
             const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-confirm')}?token=${window.OPERATION_TOKEN}&newUUID=${window.DEVICE_UUID}`;
-            console.log('[DEBUG] Polling takeover-confirm:', url);
+            debugLog('Neuer Client', 4, `Polling takeover-confirm: ${url}`);
             const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
-                console.log('[DEBUG] Response takeover-confirm:', data);
+                debugLog('Neuer Client', 4, `Response takeover-confirm: ${JSON.stringify(data)}`);
                 if (data && data.confirmed) {
                     clearInterval(pollInterval);
                     window.showTakeoverConfirmationOverlay('Datenübernahme erfolgreich!');
-                    console.log(`[DEBUG] Datenübernahme erfolgreich für newUUID=${window.DEVICE_UUID}`);
-                    window.fetchAndStoreTakeoverData(oldUUID);
+                    debugLog('Neuer Client', 4, `Datenübernahme erfolgreich für newUUID=${window.DEVICE_UUID}`);
+                    // UI aktualisieren: Trupps aus localStorage laden und rendern
+                    window.renderAllTrupps();
+                    debugLog('Neuer Client', 4, 'UI aktualisiert nach Datenübernahme.');
+                    return; // Polling beenden
                 }
             } else {
-                console.log('[DEBUG] Response NOT ok:', res.status, await res.text());
+                debugLog('Neuer Client', 4, `Response NOT ok: ${res.status}, ${await res.text()}`);
             }
         } catch (e) {
-            console.log('[DEBUG] Fehler beim Polling der Übernahmebestätigung:', e);
+            debugLog('Neuer Client', 4, `Fehler beim Polling der Übernahmebestätigung: ${e}`);
         }
     }, 2000);
 };
 
-// Neuer Client: Truppdaten von alter UUID abrufen und im localStorage speichern
+/**
+ * Ruft Truppdaten von der alten UUID ab und speichert sie im localStorage.
+ * Nach dem Speichern: Erstellt Prüfsumme und sendet sie an den Server.
+ * Reihenfolge: Schritt 5 im Prozess - wird vom neuen Client ausgeführt, nachdem die Übernahme bestätigt wurde.
+ * @param {string} oldUUID - UUID des alten Geräts.
+ */
 window.fetchAndStoreTakeoverData = async function(oldUUID) {
-    console.log('[DEBUG] fetchAndStoreTakeoverData aufgerufen mit oldUUID:', oldUUID);
+    debugLog('Neuer Client', 5, `fetchAndStoreTakeoverData aufgerufen mit oldUUID: ${oldUUID}`);
     try {
         const url = `${window.SYNC_API_URL}?token=${window.OPERATION_TOKEN}&uuid=${oldUUID}`;
-        console.log('[DEBUG] Abrufen der Truppdaten von:', url);
+        debugLog('Neuer Client', 5, `Abrufen der Truppdaten von: ${url}`);
         const res = await fetch(url);
         if (!res.ok) {
             const errText = await res.text();
-            console.log('[DEBUG] Fehlerhafte Response:', res.status, errText);
+            debugLog('Neuer Client', 5, `Fehlerhafte Response: ${res.status}, ${errText}`);
             throw new Error(errText);
         }
         const data = await res.json();
-        console.log('[DEBUG] Truppdaten-Response:', data);
+        debugLog('Neuer Client', 5, `Truppdaten-Response: ${JSON.stringify(data)}`);
         if (data && data.trupps) {
             if (window.saveTruppsToLocalStorage) {
                 window.saveTruppsToLocalStorage(data.trupps);
-                console.log(`[DEBUG] Truppdaten von alter UUID (${oldUUID}) im localStorage gespeichert.`);
-                // Seite neu laden, um UI zu aktualisieren
-                location.reload();
+                debugLog('Neuer Client', 5, `Truppdaten von alter UUID (${oldUUID}) im localStorage gespeichert.`);
+                // Prüfsumme erstellen und senden
+                const checksum = createChecksum(data.trupps);
+                await sendChecksumToServer(oldUUID, checksum);
+                debugLog('Neuer Client', 5, `Prüfsumme gesendet: ${checksum} für oldUUID ${oldUUID}`);
+                // Seite neu laden, um UI zu aktualisieren (aber nur nach Validierung)
+                // location.reload(); // Entfernt, da Validierung zuerst erfolgen muss
             } else {
-                console.log('[DEBUG] saveTruppsToLocalStorage nicht verfügbar!');
+                debugLog('Neuer Client', 5, 'saveTruppsToLocalStorage nicht verfügbar!');
             }
         } else {
-            console.log('[DEBUG] Keine Truppdaten für alte UUID gefunden! Data:', data);
+            debugLog('Neuer Client', 5, `Keine Truppdaten für alte UUID gefunden! Data: ${JSON.stringify(data)}`);
             window.showErrorOverlay('Keine Truppdaten für alte UUID gefunden!');
         }
     } catch (e) {
+        debugLog('Neuer Client', 5, `Fehler beim Abrufen der Truppdaten: ${e}`);
         window.showErrorOverlay('Fehler beim Abrufen der Truppdaten: ' + e.message);
-        console.log('[DEBUG] Fehler beim Abrufen der Truppdaten:', e);
+    }
+};
+
+/**
+ * Sendet die Prüfsumme an den Server.
+ * @param {string} oldUUID - UUID des alten Geräts.
+ * @param {string} checksum - Die erstellte Prüfsumme.
+ */
+async function sendChecksumToServer(oldUUID, checksum) {
+    try {
+        const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-checksum')}`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Operation-Token': window.OPERATION_TOKEN
+            },
+            body: JSON.stringify({
+                oldUUID,
+                newUUID: window.DEVICE_UUID,
+                checksum,
+                timestamp: Date.now()
+            })
+        });
+        if (!res.ok) {
+            debugLog('Neuer Client', 5, `Fehler beim Senden der Prüfsumme: ${res.status}, ${await res.text()}`);
+        } else {
+            debugLog('Neuer Client', 5, 'Prüfsumme erfolgreich gesendet.');
+        }
+    } catch (e) {
+        debugLog('Neuer Client', 5, `Exception beim Senden der Prüfsumme: ${e}`);
+    }
+};
+
+/**
+ * Sync-Funktion mit newUUID (für den alten Client, um futureUUID zu setzen).
+ * @param {string} newUUID - UUID des neuen Clients.
+ */
+window.syncTruppsToServerWithNewUUID = async function(newUUID) {
+    try {
+        const truppsToSync = window.getAllTrupps();
+        const deviceName = window.DEVICE_NAME || 'AGT-Device'; // Fallback, falls undefined
+        debugLog('Alter Client', 3, `Syncing trupps with newUUID: ${newUUID}, deviceName: ${deviceName}`);
+        const response = await fetch(window.SYNC_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Operation-Token': window.OPERATION_TOKEN
+            },
+            body: JSON.stringify({
+                trupps: truppsToSync,
+                timestamp: Date.now(),
+                deviceUUID: window.DEVICE_UUID,
+                deviceName: deviceName,
+                newUUID // Zusätzliches Feld für Validierung
+            })
+        });
+        if (!response.ok) {
+            throw new Error(`Sync failed: ${response.status}`);
+        }
+        debugLog('Alter Client', 3, `Trupps successfully synced to server with newUUID: ${newUUID}`);
+        
+        // Nach erfolgreichem Sync: Lösche lokale Daten und lade neu (alter Client zurücksetzen)
+        localStorage.removeItem('agt_trupps_v2');
+        localStorage.removeItem('deviceUUID');
+        debugLog('Alter Client', 3, 'Lokale Daten gelöscht. Seite wird neu geladen...');
+        location.reload();
+    } catch (error) {
+        debugLog('Alter Client', 3, `Error syncing trupps with newUUID: ${error}`);
     }
 };

@@ -47,173 +47,11 @@ window.addEventListener('DOMContentLoaded', function() {
             if (panel) panel.style.display = 'block';
             // Bei Übernahmeantrag die UUID-Liste laden
             if (item.getAttribute('data-setting') === 'takeover') {
-                showTakeoverUUIDList();
+                window.showTakeoverUUIDList(); // Aufruf aus dataTakeover.js
             }
         };
     });
 });
-
-// Hilfsfunktion: UUIDs vom Server laden
-async function loadAvailableUUIDs(token) {
-    try {
-        const url = `${window.SYNC_API_URL.replace('/trupps', '/uuids')}?token=${encodeURIComponent(token)}`;
-        const res = await fetch(url);
-        if (!res.ok) {
-            console.log('[DEBUG] UUIDs Response Error:', res.status, await res.text());
-            return [];
-        }
-        const data = await res.json();
-        console.log('[DEBUG] UUIDs Response Data:', data);
-        return data.uuids || [];
-    } catch (e) {
-        console.log('[DEBUG] UUIDs Fetch Exception:', e);
-        return [];
-    }
-}
-
-// Zeigt die UUID-Liste im Übernahmeantrag
-async function showTakeoverUUIDList() {
-    const listDiv = document.getElementById('settings-takeover-uuid-list');
-    if (!listDiv) return;
-    listDiv.innerHTML = '<div>Lade UUIDs...</div>';
-    const uuids = await loadAvailableUUIDs(window.OPERATION_TOKEN);
-    console.log('[DEBUG] UUIDs vom Server:', uuids);
-    // Eigene UUID herausfiltern
-    const filtered = uuids.filter(uuid => uuid !== window.DEVICE_UUID);
-    if (!filtered.length) {
-        listDiv.innerHTML = '<div class="no-uuid-message">Keine anderen Geräte gefunden.</div>';
-        document.getElementById('settings-takeover-send').disabled = true;
-        return;
-    }
-    let selectedUUID = null;
-    listDiv.innerHTML = filtered.map(uuid => `<div class="uuid-item" data-uuid="${uuid}">${uuid}</div>`).join('');
-    const items = listDiv.querySelectorAll('.uuid-item');
-    items.forEach(item => {
-        item.onclick = function() {
-            items.forEach(i => i.classList.remove('selected'));
-            item.classList.add('selected');
-            selectedUUID = item.getAttribute('data-uuid');
-            document.getElementById('settings-takeover-send').disabled = false;
-            document.getElementById('settings-takeover-send').dataset.uuid = selectedUUID;
-        };
-    });
-    document.getElementById('settings-takeover-send').disabled = true;
-}
-
-// Übernahmeantrag senden
-window.sendTakeoverRequest = async function(targetUUID) {
-    try {
-        const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-request')}`;
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Operation-Token': window.OPERATION_TOKEN
-            },
-            body: JSON.stringify({
-                targetUUID,
-                requesterUUID: window.DEVICE_UUID,
-                requesterName: window.DEVICE_NAME || 'Unbekannt',
-                timestamp: Date.now()
-            })
-        });
-        if (!res.ok) {
-            console.log('[DEBUG] Takeover Request Error:', res.status, await res.text());
-            return false;
-        }
-        console.log('[DEBUG] Takeover Request sent for UUID:', targetUUID);
-        // Nach Absenden: Einstellungen schließen und Lade-Overlay anzeigen
-        window.closeSettingsOverlay();
-        window.showTakeoverLoadingOverlay();
-        // Starte Polling auf Antwort
-        window.pollTakeoverResponse(targetUUID);
-        return true;
-    } catch (e) {
-        console.log('[DEBUG] Takeover Request Exception:', e);
-        return false;
-    }
-};
-
-// Pollt auf Antwort vom alten Client
-window.pollTakeoverResponse = function(targetUUID) {
-    let pollInterval = setInterval(async () => {
-        try {
-            const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-response')}?token=${window.OPERATION_TOKEN}&requesterUUID=${window.DEVICE_UUID}`;
-            const res = await fetch(url);
-            if (res.ok) {
-                const data = await res.json();
-                if (data && data.status) {
-                    window.hideTakeoverLoadingOverlay();
-                    clearInterval(pollInterval);
-                    if (data.status === 'accepted') {
-                        console.log('Übernahmeantrag angenommen. Rufe Daten ab...');
-                        // Daten von der alten UUID abrufen und speichern
-                        await window.fetchAndStoreTakeoverData(targetUUID);
-                        window.showTakeoverConfirmationOverlay('Übernahme bestätigt!');
-                    } else if (data.status === 'declined') {
-                        window.showTakeoverConfirmationOverlay('Übernahme abgelehnt!');
-                    }
-                }
-            }
-        } catch (e) {}
-    }, 2000);
-};
-
-// Benachrichtigt den neuen Client über die Antwort (accepted/declined)
-window.notifyTakeoverRequester = function(targetUUID, status) {
-    // Pollt auf den /takeover-response Endpoint, um die Antwort zu signalisieren
-    let pollCount = 0;
-    let maxPolls = 10; // 20 Sekunden
-    let pollInterval = setInterval(async () => {
-        pollCount++;
-        if (pollCount > maxPolls) {
-            clearInterval(pollInterval);
-            window.showTakeoverResultOverlay('timeout');
-            return;
-        }
-        try {
-            const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-response')}?token=${window.OPERATION_TOKEN}&requesterUUID=${targetUUID}`;
-            const res = await fetch(url);
-            if (res.ok) {
-                const data = await res.json();
-                if (data && data.status) {
-                    clearInterval(pollInterval);
-                    window.showTakeoverResultOverlay(data.status);
-                }
-            }
-        } catch (e) {}
-    }, 2000);
-};
-
-// Overlay für das Ergebnis der Übernahme
-window.showTakeoverResultOverlay = function(status) {
-    let overlay = document.getElementById('takeover-result-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'takeover-result-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100vw';
-        overlay.style.height = '100vh';
-        overlay.style.background = 'rgba(0,0,0,0.6)';
-        overlay.style.zIndex = '10004';
-        overlay.style.display = 'flex';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        document.body.appendChild(overlay);
-    }
-    let msg = '';
-    if (status === 'accepted') {
-        msg = '<h2>Übernahme bestätigt!</h2><p>Das neue Gerät kann jetzt übernehmen.</p>';
-    } else if (status === 'declined') {
-        msg = '<h2>Übernahme abgelehnt!</h2><p>Das neue Gerät hat die Übernahme nicht erhalten.</p>';
-    } else {
-        msg = '<h2>Keine Antwort erhalten</h2><p>Die Übernahme wurde nicht bestätigt.</p>';
-    }
-    overlay.innerHTML = `<div style="background:#fff;padding:2em 2.5em;border-radius:10px;box-shadow:0 2px 16px rgba(0,0,0,0.18);min-width:320px;text-align:center;">${msg}<br><button onclick="document.getElementById('takeover-result-overlay').style.display='none'">Schließen</button></div>`;
-    overlay.style.display = 'flex';
-};
 
 // Eventlistener für Antrag senden Button
 window.addEventListener('DOMContentLoaded', function() {
@@ -222,7 +60,7 @@ window.addEventListener('DOMContentLoaded', function() {
         takeoverBtn.onclick = async function() {
             const uuid = takeoverBtn.dataset.uuid;
             if (uuid) {
-                await window.sendTakeoverRequest(uuid);
+                await window.sendTakeoverRequest(uuid); // Aufruf aus dataTakeover.js
                 takeoverBtn.disabled = true;
                 takeoverBtn.textContent = 'Antrag gesendet';
                 setTimeout(() => {
