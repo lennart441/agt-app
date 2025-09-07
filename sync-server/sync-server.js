@@ -65,7 +65,12 @@ function loadTruppData(token, deviceUUID = null) {
     return deviceUUID ? null : {};
   }
   if (deviceUUID) {
-    return operations[token][deviceUUID] || null;
+    const data = operations[token][deviceUUID];
+    if (data && data.futureUUID) {
+      // Wenn futureUUID vorhanden, gib die Daten der neuen UUID zurück
+      return operations[token][data.futureUUID] || null;
+    }
+    return data || null;
   }
   return operations[token]; // Alle UUIDs mit ihren Daten
 }
@@ -75,7 +80,36 @@ function loadActiveUUIDs(token) {
   if (!operations[token]) {
     return [];
   }
-  return Object.keys(operations[token]);
+  const uuids = Object.keys(operations[token]);
+  // Ersetze UUIDs mit futureUUID, falls vorhanden
+  const updatedUUIDs = uuids.map(uuid => {
+    const data = operations[token][uuid];
+    if (data && data.futureUUID) {
+      return data.futureUUID;
+    }
+    return uuid;
+  });
+  // Entferne Duplikate
+  return [...new Set(updatedUUIDs)];
+}
+
+// Funktion zum Bereinigen alter Daten (älter als 60 Minuten)
+function cleanupOldData() {
+  const now = Date.now();
+  const maxAge = 60 * 60 * 1000; // 60 Minuten in Millisekunden
+  for (const token in operations) {
+    for (const uuid in operations[token]) {
+      const data = operations[token][uuid];
+      if (data.timestamp && (now - data.timestamp) > maxAge) {
+        console.log(`[CLEANUP] Alte Daten für token ${token}, UUID ${uuid} gelöscht (älter als 60 Minuten)`);
+        delete operations[token][uuid];
+      }
+    }
+    // Wenn kein Token mehr UUIDs hat, Token löschen
+    if (Object.keys(operations[token]).length === 0) {
+      delete operations[token];
+    }
+  }
 }
 
 // Serverstart erst nach erfolgreichem Laden der Tokens
@@ -83,6 +117,8 @@ loadTokens().then(() => {
   app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
   });
+  // Starte Cleanup-Intervall alle 10 Minuten
+  setInterval(cleanupOldData, 10 * 60 * 1000); // 10 Minuten
 }).catch((error) => {
   console.error('Failed to load tokens, server not started:', error);
 });

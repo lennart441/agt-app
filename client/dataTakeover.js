@@ -55,8 +55,48 @@ async function showTakeoverUUIDList() {
         document.getElementById('settings-takeover-send').disabled = true;
         return;
     }
-    let selectedUUID = null;
-    listDiv.innerHTML = filtered.map(uuid => `<div class="uuid-item" data-uuid="${uuid}">${uuid}</div>`).join('');
+    // Lade Daten für jede UUID
+    const uuidDataPromises = filtered.map(async (uuid) => {
+        try {
+            const url = `${window.SYNC_API_URL}?token=${encodeURIComponent(window.OPERATION_TOKEN)}&uuid=${encodeURIComponent(uuid)}`;
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                return { uuid, deviceName: data.deviceName || 'Unbekannt', timestamp: data.timestamp || 0 };
+            } else {
+                return { uuid, deviceName: 'Unbekannt', timestamp: 0 };
+            }
+        } catch (e) {
+            return { uuid, deviceName: 'Unbekannt', timestamp: 0 };
+        }
+    });
+    const uuidData = await Promise.all(uuidDataPromises);
+    // Sortiere nach timestamp absteigend (neueste oben)
+    uuidData.sort((a, b) => b.timestamp - a.timestamp);
+    // Funktion zur Berechnung der Zeitdifferenz
+    function getTimeAgo(timestamp) {
+        const now = Date.now();
+        const diff = now - timestamp;
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+        if (days > 0) return `vor ${days} Tag${days > 1 ? 'en' : ''}`;
+        if (hours > 0) return `vor ${hours} Stunde${hours > 1 ? 'n' : ''}`;
+        if (minutes > 0) return `vor ${minutes} Minute${minutes > 1 ? 'n' : ''}`;
+        return 'gerade eben';
+    }
+    // HTML generieren
+    listDiv.innerHTML = uuidData.map(data => {
+        const date = new Date(data.timestamp).toLocaleString('de-DE');
+        const timeAgo = getTimeAgo(data.timestamp);
+        return `<div class="uuid-item" data-uuid="${data.uuid}">
+            <div class="uuid-info">
+                <strong>UUID:</strong> ${data.uuid}<br>
+                <strong>Gerät:</strong> ${data.deviceName}<br>
+                <strong>Letzter Kontakt:</strong> ${date} (${timeAgo})
+            </div>
+        </div>`;
+    }).join('');
     const items = listDiv.querySelectorAll('.uuid-item');
     items.forEach(item => {
         item.onclick = function() {
@@ -68,6 +108,21 @@ async function showTakeoverUUIDList() {
         };
     });
     document.getElementById('settings-takeover-send').disabled = true;
+    // Timer für Live-Update der Zeitdifferenz
+    if (window.takeoverTimer) clearInterval(window.takeoverTimer);
+    window.takeoverTimer = setInterval(() => {
+        const infoDivs = listDiv.querySelectorAll('.uuid-info');
+        infoDivs.forEach((div, index) => {
+            const data = uuidData[index];
+            const timeAgo = getTimeAgo(data.timestamp);
+            const date = new Date(data.timestamp).toLocaleString('de-DE');
+            div.innerHTML = `
+                <strong>UUID:</strong> ${data.uuid}<br>
+                <strong>Gerät:</strong> ${data.deviceName}<br>
+                <strong>Letzter Kontakt:</strong> ${date} (${timeAgo})
+            `;
+        });
+    }, 60000); // Aktualisiere alle 60 Sekunden
 }
 
 /**

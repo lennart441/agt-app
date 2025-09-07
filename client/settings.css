@@ -40,11 +40,16 @@
   display: flex;
   flex-direction: row;
   position: relative;
+  height: 80vh;
+  max-width: 90vw;
 }
 .settings-left {
   width: 180px;
   border-right: 1px solid #eee;
   padding-right: 16px;
+  flex: 1;
+  padding: 20px;
+  border-right: 1px solid #ccc;
 }
 .settings-left h2 {
   font-size: 1.1em;
@@ -62,14 +67,21 @@
   cursor: pointer;
   background: #e0e0e0;
   transition: background 0.2s;
+  list-style: none;
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
 }
 .settings-item.selected, .settings-item:hover {
   background: #007bff;
   color: white;
 }
 .settings-right {
-  flex: 1;
-  padding-left: 24px;
+  flex: 2;
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(80vh - 40px);
+  -webkit-overflow-scrolling: touch; /* Für bessere Touch-Scrolling auf Tablets/iOS */
 }
 .setting-panel {
   display: none;
@@ -90,4 +102,44 @@
   font-size: 1.2rem;
   color: white;
   z-index: 10;
+  top: 10px;
+  right: 10px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+}
+/* Größere Boxen für UUID-Items */
+.uuid-item {
+    padding: 15px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #f9f9f9;
+    cursor: pointer;
+    min-height: 80px;
+    transition: background 0.2s;
+}
+
+.uuid-item:hover {
+    background: #f0f0f0;
+}
+
+.uuid-item.selected {
+    background: #e0f7fa;
+    border-color: #007bff;
+}
+
+.uuid-info {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.no-uuid-message {
+    padding: 20px;
+    text-align: center;
+    color: #666;
 }

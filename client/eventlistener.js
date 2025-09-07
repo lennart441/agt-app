@@ -23,6 +23,11 @@ window.openSettingsOverlay = function() {
     if (tokenInput && window.OPERATION_TOKEN) {
         tokenInput.value = window.OPERATION_TOKEN;
     }
+    // Gerätename-Feld mit aktuellem Wert füllen
+    const deviceInput = document.getElementById('settings-device-input');
+    if (deviceInput && window.DEVICE_NAME) {
+        deviceInput.value = window.DEVICE_NAME;
+    }
     document.getElementById('settings-overlay').style.display = 'flex';
 };
 window.closeSettingsOverlay = function() {
@@ -86,6 +91,9 @@ if (typeof OPERATION_TOKEN !== 'undefined') {
 if (typeof DEVICE_UUID !== 'undefined') {
     window.DEVICE_UUID = DEVICE_UUID;
 }
+if (typeof DEVICE_NAME !== 'undefined') {
+    window.DEVICE_NAME = DEVICE_NAME;
+}
 if (typeof SYNC_API_URL !== 'undefined') {
     window.SYNC_API_URL = SYNC_API_URL;
 }
@@ -124,6 +132,30 @@ window.addEventListener('DOMContentLoaded', function() {
                 });
             } else {
                 alert('Overlay-Funktion nicht verfügbar!');
+            }
+        };
+    }
+});
+
+// Eventlistener für Device Save Button
+window.addEventListener('DOMContentLoaded', function() {
+    const deviceSaveBtn = document.getElementById('settings-device-save');
+    if (deviceSaveBtn) {
+        deviceSaveBtn.onclick = function() {
+            const newDeviceName = document.getElementById('settings-device-input').value.trim();
+            if (newDeviceName) {
+                localStorage.setItem('deviceName', newDeviceName);
+                window.DEVICE_NAME = newDeviceName;
+                if (typeof syncTruppsToServer === 'function') {
+                    syncTruppsToServer(); // Sende den neuen Namen an den Server
+                }
+                if (typeof showSuccessOverlay === 'function') {
+                    showSuccessOverlay('Gerätename gespeichert!');
+                }
+            } else {
+                if (typeof showErrorOverlay === 'function') {
+                    showErrorOverlay('Bitte einen gültigen Namen eingeben.');
+                }
             }
         };
     }

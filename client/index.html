@@ -102,6 +102,15 @@
     </div>
   </div>
 
+  <!-- Erfolg-Overlay -->
+  <div id="success-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:99999; justify-content:center; align-items:center;">
+    <div style="background:#fff; color:#28a745; padding:32px; border-radius:8px; min-width:280px; max-width:90vw; text-align:center; box-shadow:0 2px 16px rgba(0,0,0,0.2);">
+      <h2>Erfolg</h2>
+      <div id="success-message"></div>
+      <button onclick="closeSuccessOverlay()" style="margin-top:16px;">Schließen</button>
+    </div>
+  </div>
+
   <!-- Druck-Erinnerungs-Overlay -->
   <div id="pressure-reminder-overlay" class="overlay" style="display: none;">
     <div class="overlay-content">
@@ -124,6 +133,7 @@
         <h2>Einstellungen</h2>
         <ul id="settings-list">
           <li data-setting="token" class="settings-item selected">Token ändern</li>
+          <li data-setting="device" class="settings-item">Gerätename ändern</li>
           <li data-setting="takeover" class="settings-item">Übernahmeantrag</li>
         </ul>
       </div>
@@ -132,6 +142,11 @@
           <label for="settings-token-input">Neues Token eingeben:</label>
           <input type="text" id="settings-token-input" value="">
           <button id="settings-token-save">Speichern</button>
+        </div>
+        <div id="setting-device" class="setting-panel" style="display:none;">
+          <label for="settings-device-input">Neuer Gerätename eingeben:</label>
+          <input type="text" id="settings-device-input" value="">
+          <button id="settings-device-save">Speichern</button>
         </div>
         <div id="setting-takeover" class="setting-panel" style="display:none;">
           <label>Übernahmeantrag stellen:</label>
@@ -176,6 +191,16 @@
       <h2 id="takeover-confirmation-title">Bestätigung</h2>
       <div id="takeover-confirmation-message"></div>
       <button onclick="document.getElementById('takeover-confirmation-overlay').style.display='none'" style="margin-top:16px;">Schließen</button>
+    </div>
+  </div>
+
+  <!-- Initial Setup Overlay -->
+  <div id="initial-setup-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center;">
+    <div style="background:#fff; padding:32px; border-radius:8px; min-width:280px; max-width:90vw; text-align:center; box-shadow:0 2px 16px rgba(0,0,0,0.2);">
+      <h2>Ersteinrichtung</h2>
+      <p>Bitte geben Sie einen Namen für dieses Gerät ein:</p>
+      <input type="text" id="initial-device-name" placeholder="Gerätename" style="width:100%; padding:8px; margin:16px 0;">
+      <button id="initial-save-btn" style="background:#007bff; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">Speichern</button>
     </div>
   </div>
 

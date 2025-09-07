@@ -23,7 +23,20 @@ const SYNC_API_URL = 'http://localhost:3001/v1/sync-api/trupps';
 let OPERATION_TOKEN = "abc123def456ghi7";
 
 // Fester Gerätename (temporär)
-const DEVICE_NAME = "AGT-Device";
+let DEVICE_NAME = localStorage.getItem('deviceName') || null;
+if (!DEVICE_NAME) {
+  // Öffne Ersteinrichtungs-Overlay
+  window.addEventListener('load', () => {
+    if (typeof showInitialSetupOverlay === 'function') {
+      showInitialSetupOverlay();
+    }
+  });
+} else {
+  // Stelle sicher, dass es gespeichert ist
+  localStorage.setItem('deviceName', DEVICE_NAME);
+  // Start automatic sync every 2 seconds
+  setInterval(syncTruppsToServer, 2000);
+}
 
 // UUID für das Gerät, wird beim ersten Laden generiert und gespeichert
 let DEVICE_UUID = localStorage.getItem('deviceUUID') || generateUUID();
@@ -112,6 +125,7 @@ async function ladeAuftragVorschlaege() {
  * Synchronisiert die aktuellen Truppdaten mit dem Server
  */
 async function syncTruppsToServer() {
+  if (!DEVICE_NAME) return; // Nicht syncen, wenn kein Gerätename gesetzt
   try {
     // Lade Trupps aus localStorage über die Helper-Funktion
     const truppsToSync = window.getAllTrupps();
@@ -149,8 +163,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   trupps = window.getAllTrupps();
   if (typeof renderAllTrupps === 'function') renderAllTrupps();
   
-  // Start automatic sync every 2 seconds
-  setInterval(syncTruppsToServer, 2000);
 
 });
 

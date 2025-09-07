@@ -451,3 +451,43 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateMultiUUIDSwitchUI();
   }
 });
+
+// Funktion zum Laden und Anzeigen der Trupps vom Server
+async function loadTruppsFromServer() {
+    try {
+        const token = getTokenFromUrl();
+        if (!token) {
+            console.error('Kein Token gefunden.');
+            return;
+        }
+        const url = `${SYNC_API_URL.replace('/trupps', '/trupps')}?token=${encodeURIComponent(token)}`;
+        const res = await fetch(url);
+        if (!res.ok) {
+            console.error('Fehler beim Laden der Trupps:', res.status);
+            return;
+        }
+        const allData = await res.json();
+        // Sammle alle UUIDs und deren Daten
+        const truppsByUUID = {};
+        for (const uuid in allData) {
+            const data = allData[uuid];
+            if (data.futureUUID) {
+                // Wenn futureUUID vorhanden, verwende die neue UUID
+                truppsByUUID[data.futureUUID] = data.trupps || [];
+                // Entferne alte UUID, falls vorhanden
+                delete truppsByUUID[uuid];
+            } else {
+                truppsByUUID[uuid] = data.trupps || [];
+            }
+        }
+        // Sammle alle Trupps
+        const allTrupps = [];
+        for (const uuid in truppsByUUID) {
+            allTrupps.push(...truppsByUUID[uuid]);
+        }
+        // Anzeigen
+        displayTrupps(allTrupps);
+    } catch (error) {
+        console.error('Fehler beim Laden der Trupps:', error);
+    }
+}

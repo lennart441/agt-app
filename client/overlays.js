@@ -385,6 +385,26 @@ function closeErrorOverlay() {
 }
 
 /**
+ * Zeigt das zentrale Erfolg-Overlay mit einer Nachricht an.
+ * @param {string} text - Die Erfolgsnachricht.
+ */
+function showSuccessOverlay(text) {
+  const overlay = document.getElementById('success-overlay');
+  const msg = document.getElementById('success-message');
+  if (msg) msg.textContent = text;
+  if (overlay) overlay.style.display = 'flex';
+  addOverlayEscListener('success-overlay', closeSuccessOverlay);
+}
+
+/**
+ * Schließt das Erfolg-Overlay.
+ */
+function closeSuccessOverlay() {
+  const overlay = document.getElementById('success-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+/**
  * Beispiel für Value-Setzung nach Auswahl:
  */
 function selectTruppName(name) {
@@ -483,3 +503,38 @@ window.hideTakeoverLoadingOverlay = function() {
     const overlay = document.getElementById('takeover-loading-overlay');
     if (overlay) overlay.style.display = 'none';
 };
+
+/**
+ * Zeigt das Ersteinrichtungs-Overlay an.
+ */
+function showInitialSetupOverlay() {
+  const overlay = document.getElementById('initial-setup-overlay');
+  if (overlay) overlay.style.display = 'flex';
+  addOverlayEscListener('initial-setup-overlay', closeInitialSetupOverlay);
+  // Event-Listener für den Button
+  const saveBtn = document.getElementById('initial-save-btn');
+  if (saveBtn) {
+    saveBtn.onclick = function() {
+      const name = document.getElementById('initial-device-name').value.trim();
+      if (name) {
+        localStorage.setItem('deviceName', name);
+        window.DEVICE_NAME = name;
+        closeInitialSetupOverlay();
+        // Seite neu laden, um alles korrekt zu initialisieren
+        location.reload();
+      } else {
+        if (typeof showErrorOverlay === 'function') {
+          showErrorOverlay('Bitte einen gültigen Namen eingeben.');
+        }
+      }
+    };
+  }
+}
+
+/**
+ * Schließt das Ersteinrichtungs-Overlay.
+ */
+function closeInitialSetupOverlay() {
+  const overlay = document.getElementById('initial-setup-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
