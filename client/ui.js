@@ -216,9 +216,22 @@ function renderTrupp(trupp) {
     <label>Notiz:</label>
     <input type="text" id="notiz-${trupp.id}">
     <button onclick="window.meldung(${trupp.id})">Melden</button>
+    <span id="edit-trupp-btn-${trupp.id}"></span>
     <div id="meldungen-${trupp.id}"></div>
   `;
   card.appendChild(meldungForm);
+
+  // Trupp bearbeiten Button nur anzeigen, wenn startZeit und lastMeldungZeit beide undefined
+  if (typeof trupp.startZeit === 'undefined' && typeof trupp.lastMeldungZeit === 'undefined') {
+    const editBtn = document.createElement('button');
+    editBtn.textContent = 'Trupp bearbeiten';
+    editBtn.style.marginLeft = '8px';
+    editBtn.onclick = function() {
+      window.showTruppEditOverlay(trupp.id);
+    };
+    const btnSpan = meldungForm.querySelector(`#edit-trupp-btn-${trupp.id}`);
+    if (btnSpan) btnSpan.appendChild(editBtn);
+  }
 
   card.classList.add(trupp.inaktiv ? "inaktiv" : "aktiv");
   if (trupp.notfallAktiv) {

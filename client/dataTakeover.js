@@ -243,7 +243,7 @@ window.pollTakeoverResponse = function(targetUUID) {
  * @param {string} deviceUUID - UUID des aktuellen Geräts (alter Client).
  * @param {string} token - Operationstoken.
  */
-function startTakeoverPolling(deviceUUID, token) {
+function _startTakeoverPolling(deviceUUID, token) {
     if (isOfflineMode()) return;
     if (takeoverPollingInterval) return;
     takeoverPollingInterval = setInterval(async () => {
@@ -299,6 +299,11 @@ function startTakeoverPolling(deviceUUID, token) {
             debugLog('Alter Client', 1, `Fehler im takeoverPolling: ${e}`);
         }
     }, 2000);
+}
+
+window.startTakeoverPolling = function(deviceUUID, token) {
+    if (isOfflineMode()) return;
+    _startTakeoverPolling(deviceUUID, token);
 }
 
 /**
@@ -492,8 +497,3 @@ window.syncTruppsToServerWithNewUUID = async function(newUUID) {
         debugLog('Alter Client', 3, `Error syncing trupps with newUUID: ${error}`);
     }
 };
-
-window.startTakeoverPolling = function(deviceUUID, token) {
-    if (isOfflineMode()) return;
-    startTakeoverPolling(deviceUUID, token);
-}

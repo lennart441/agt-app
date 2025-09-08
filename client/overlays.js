@@ -538,3 +538,225 @@ function closeInitialSetupOverlay() {
   const overlay = document.getElementById('initial-setup-overlay');
   if (overlay) overlay.style.display = 'none';
 }
+
+/**
+ * Overlay zum Bearbeiten eines Trupps anzeigen und Felder vorausfüllen
+ */
+window.showTruppEditOverlay = function(truppId) {
+  const trupp = window.getTrupp(truppId);
+  if (!trupp) return;
+  const overlay = document.getElementById('edit-trupp-overlay');
+  overlay.style.display = 'flex';
+  // Truppname
+  window.setFakeInputValue('edit-truppname', trupp.name);
+  document.getElementById('edit-truppname').onclick = function() {
+    showTruppNameOverlay('edit-truppname');
+  };
+  // Auftrag
+  window.setFakeInputValue('edit-mission', trupp.mission);
+  document.getElementById('edit-mission').onclick = function() {
+    showMissionOverlay('edit', null);
+  };
+  // Mitglieder
+  let editMembers = JSON.parse(JSON.stringify(trupp.members)); // Kopie für Bearbeitung
+  function renderEditMembers() {
+    const membersDiv = document.getElementById('edit-members');
+    membersDiv.innerHTML = '';
+    editMembers.forEach((m, idx) => {
+      const memberDiv = document.createElement('div');
+      memberDiv.className = 'trupp-member';
+      memberDiv.innerHTML = `
+        <label>${m.role === 'TF' ? 'Truppführer' : 'Truppmann'} Name:</label>
+        <div id="edit-member-name-${idx}" class="fake-input" onclick="showNameOverlay('edit-member-name-${idx}')"></div>
+        <label>Druck:</label>
+        <div id="edit-member-druck-${idx}" class="fake-input" onclick="showDruckOverlay('edit-member-druck-${idx}')"></div>
+        ${idx > 1 ? `<button class='remove-member-btn' onclick='window.removeEditMember(${idx})'>Entfernen</button>` : ''}
+      `;
+      membersDiv.appendChild(memberDiv);
+      window.setFakeInputValue(`edit-member-name-${idx}`, m.name);
+      window.setFakeInputValue(`edit-member-druck-${idx}`, m.druck);
+    });
+    // Hinzufügen-Button
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+ Mitglied hinzufügen';
+    addBtn.onclick = function() {
+      editMembers.push({ name: '', druck: '', role: `TM${editMembers.length}` });
+      renderEditMembers();
+    };
+    membersDiv.appendChild(addBtn);
+  }
+  window.removeEditMember = function(idx) {
+    if (editMembers.length > 2 && idx > 1) {
+      editMembers.splice(idx, 1);
+      // Rollen neu vergeben
+      let tmNum = 1;
+      editMembers.forEach((m, i) => {
+        if (i === 0) m.role = 'TF';
+        else { m.role = `TM${tmNum}`; tmNum++; }
+      });
+      renderEditMembers();
+    }
+  };
+  renderEditMembers();
+  // Speichern-Button
+  document.getElementById('edit-trupp-save-btn').onclick = function() {
+    // Werte auslesen
+    const newName = document.getElementById('edit-truppname').textContent.trim();
+    const newMission = document.getElementById('edit-mission').textContent.trim();
+    const newMembers = editMembers.map((m, idx) => ({
+      name: document.getElementById(`edit-member-name-${idx}`).textContent.trim(),
+      druck: parseInt(document.getElementById(`edit-member-druck-${idx}`).textContent.trim()) || m.druck,
+      role: m.role
+    }));
+    // Validierung: Mindestens 2 Mitglieder, Druck >= 270
+    let errorMsg = '';
+    if (newMembers.length < 2) errorMsg += 'Mindestens zwei Mitglieder erforderlich!\n';
+    newMembers.forEach((m, idx) => {
+      if (!m.name || m.name.length < 2) errorMsg += `Mitglied ${idx + 1}: Name fehlt oder zu kurz!\n`;
+      if (!m.druck || isNaN(m.druck) || m.druck < 270) errorMsg += `Mitglied ${idx + 1}: Druck muss mindestens 270 bar sein!\n`;
+    });
+    if (errorMsg) {
+      if (typeof showErrorOverlay === 'function') showErrorOverlay(errorMsg.trim());
+      return;
+    }
+    // Update
+    window.updateTrupp(truppId, { name: newName, mission: newMission, members: newMembers });
+    if (typeof renderAllTrupps === 'function') renderAllTrupps();
+    closeEditTruppOverlay();
+  };
+};
+
+window.closeEditTruppOverlay = function() {
+  document.getElementById('edit-trupp-overlay').style.display = 'none';
+};
+
+// Erweiterte Callback-Logik für Bearbeiten-Overlay
+window.setEditTruppName = function(name) {
+  window.setFakeInputValue('edit-truppname', name);
+  closeTruppNameOverlay();
+};
+window.setEditMission = function(mission) {
+  window.setFakeInputValue('edit-mission', mission);
+  closeMissionOverlay();
+};
+window.setEditMemberName = function(idx, name) {
+  window.setFakeInputValue(`edit-member-name-${idx}`, name);
+  closeNameOverlay();
+};
+window.setEditMemberDruck = function(idx, druck) {
+  window.setFakeInputValue(`edit-member-druck-${idx}`, druck);
+  closeDruckOverlay();
+};
+
+// Passe die Overlay-Öffner für das Bearbeiten-Overlay an
+function showTruppNameOverlay(targetId = 'trupp-name-input') {
+  const overlay = document.getElementById('truppname-overlay');
+  const grid = document.getElementById('truppname-grid');
+  grid.innerHTML = '';
+  // Custom Input
+  const customInputDiv = document.createElement('div');
+  customInputDiv.className = 'custom-name';
+  customInputDiv.innerHTML = `
+    <label>Alternativer Truppname:</label>
+    <input type="text" id="custom-truppname-input">
+    <button onclick="window.setTruppName('${targetId}', document.getElementById('custom-truppname-input').value)">Bestätigen</button>
+  `;
+  grid.appendChild(customInputDiv);
+  truppNameVorschlaege.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'name-btn';
+    btn.textContent = name;
+    btn.onclick = function() {
+      window.setTruppName(targetId, name);
+    };
+    grid.appendChild(btn);
+  });
+  overlay.style.display = 'flex';
+  addOverlayEscListener('truppname-overlay', closeTruppNameOverlay);
+}
+
+function showMissionOverlay(context = 'create', truppId = null, targetId = 'trupp-mission-display') {
+  const overlay = document.getElementById('mission-overlay');
+  const grid = document.getElementById('mission-grid');
+  grid.innerHTML = '';
+  const customInputDiv = document.createElement('div');
+  customInputDiv.className = 'custom-mission';
+  customInputDiv.innerHTML = `
+    <label>Alternativer Auftrag:</label>
+    <input type="text" id="custom-mission-input">
+    <button onclick="window.setMission('${targetId}', document.getElementById('custom-mission-input').value)">Bestätigen</button>
+  `;
+  grid.appendChild(customInputDiv);
+  auftragVorschlaege.forEach(auftrag => {
+    const btn = document.createElement('button');
+    btn.className = 'mission-btn';
+    btn.textContent = auftrag;
+    btn.onclick = function() {
+      window.setMission(targetId, auftrag);
+    };
+    grid.appendChild(btn);
+  });
+  overlay.style.display = 'flex';
+  addOverlayEscListener('mission-overlay', closeMissionOverlay);
+}
+
+function showNameOverlay(inputId) {
+  const overlay = document.getElementById('name-overlay');
+  const grid = document.getElementById('name-grid');
+  grid.innerHTML = '';
+  const customInputDiv = document.createElement('div');
+  customInputDiv.className = 'custom-name';
+  customInputDiv.innerHTML = `
+    <label>Alternativer Name:</label>
+    <input type="text" id="custom-name-input">
+    <button onclick="window.setMemberName('${inputId}', document.getElementById('custom-name-input').value)">Bestätigen</button>
+  `;
+  grid.appendChild(customInputDiv);
+  agtlerNamen.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'name-btn';
+    btn.textContent = name;
+    btn.onclick = function() {
+      window.setMemberName(inputId, name);
+    };
+    grid.appendChild(btn);
+  });
+  overlay.style.display = 'flex';
+  addOverlayEscListener('name-overlay', closeNameOverlay);
+}
+
+function showDruckOverlay(inputId) {
+  const overlay = document.getElementById('druck-overlay');
+  const grid = document.getElementById('druck-grid');
+  grid.innerHTML = '';
+  const druckWerteMeldung = Array.from({ length: 32 }, (_, i) => 320 - i * 10);
+  druckWerteMeldung.forEach(wert => {
+    const btn = document.createElement('button');
+    btn.className = 'druck-btn';
+    btn.textContent = `${wert}`;
+    btn.setAttribute('data-druck', wert);
+    btn.onclick = function() {
+      window.setMemberDruck(inputId, wert);
+    };
+    grid.appendChild(btn);
+  });
+  overlay.style.display = 'flex';
+  addOverlayEscListener('druck-overlay', closeDruckOverlay);
+}
+
+window.setTruppName = function(targetId, name) {
+  window.setFakeInputValue(targetId, name);
+  closeTruppNameOverlay();
+};
+window.setMission = function(targetId, mission) {
+  window.setFakeInputValue(targetId, mission);
+  closeMissionOverlay();
+};
+window.setMemberName = function(targetId, name) {
+  window.setFakeInputValue(targetId, name);
+  closeNameOverlay();
+};
+window.setMemberDruck = function(targetId, druck) {
+  window.setFakeInputValue(targetId, druck);
+  closeDruckOverlay();
+};

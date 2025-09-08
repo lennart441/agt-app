@@ -221,6 +221,20 @@
     </div>
   </div>
 
+  <!-- Overlay: Trupp bearbeiten -->
+  <div id="edit-trupp-overlay" class="overlay" style="display:none;">
+    <div class="overlay-content" style="max-width:500px;">
+      <h2>Trupp bearbeiten</h2>
+      <label>Truppname:</label>
+      <div id="edit-truppname" class="fake-input" onclick="showTruppNameOverlay('edit-truppname')"></div>
+      <label>Auftrag:</label>
+      <div id="edit-mission" class="fake-input" onclick="showMissionOverlay('edit', null)"></div>
+      <div id="edit-members"></div>
+      <button id="edit-trupp-save-btn">Speichern</button>
+      <button onclick="closeEditTruppOverlay()">Abbrechen</button>
+    </div>
+  </div>
+
   <script src="logic.js"></script>
   <script src="localStorage.js"></script>
   <script src="dataTakeover.js"></script>
