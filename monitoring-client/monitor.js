@@ -7,6 +7,7 @@ let refreshInterval = null;
 let settingsUUIDInterval = null;
 let multiUUIDEnabled = false;
 let selectedUUIDs = [];
+let isUpdatingOverlay = false; // Flag für gleichzeitige Overlay-Aktualisierung
 
 function getTokenFromUrl() {
   const params = new URLSearchParams(window.location.search);
@@ -244,6 +245,8 @@ async function fetchUUIDs() {
 }
 
 async function showUUIDOverlay(uuids) {
+  if (isUpdatingOverlay) return;
+  isUpdatingOverlay = true;
   if (refreshInterval) {
     clearInterval(refreshInterval);
   }
@@ -262,114 +265,116 @@ async function showUUIDOverlay(uuids) {
     overlay.style.display = 'flex';
     // Scrollposition wiederherstellen
     if (list) list.scrollTop = prevScroll;
-    return; // Kein Refresh nötig
-  }
-
-  // Fetch data for each UUID
-  const uuidData = [];
-  for (const uuid of uuids) {
-    try {
-      const data = await fetchTrupps(uuid, false); // UI nicht aktualisieren
-      uuidData.push({
-        uuid,
-        deviceName: data.deviceName || 'Unbekannt',
-        timestamp: data.timestamp || null
-      });
-    } catch (error) {
-      uuidData.push({
-        uuid,
-        deviceName: 'Fehler',
-        timestamp: null
+  } else {
+    // Fetch data for each UUID
+    const uuidData = [];
+    for (const uuid of uuids) {
+      try {
+        const data = await fetchTrupps(uuid, false); // UI nicht aktualisieren
+        uuidData.push({
+          uuid,
+          deviceName: data.deviceName || 'Unbekannt',
+          timestamp: data.timestamp || null
+        });
+      } catch (error) {
+        uuidData.push({
+          uuid,
+          deviceName: 'Fehler',
+          timestamp: null
+        });
+      }
+    }
+    // Sortiere und zeige Kategorien
+    const sorted = sortUUIDData(uuidData);
+    if (sorted.aktiv.length > 0) {
+      const aktivLabel = document.createElement('div');
+      aktivLabel.style.fontWeight = 'bold';
+      aktivLabel.style.margin = '10px 0 4px 0';
+      aktivLabel.textContent = 'Aktiv (≤ 10 Sekunden)';
+      list.appendChild(aktivLabel);
+      sorted.aktiv.forEach(data => {
+        const item = document.createElement('div');
+        item.className = 'uuid-item';
+        item.innerHTML = `
+          <div class="uuid-header"><strong>UUID:</strong> ${data.uuid}</div>
+          <div class="device-name"><strong>Gerät:</strong> ${data.deviceName}</div>
+          <div class="timestamp"><strong>Letzte Sync:</strong> ${formatTimestamp(data.timestamp)}</div>
+          <div class="timer" data-timestamp="${data.timestamp || 0}"><strong>Zeit seit Sync:</strong> ${calculateTimeSince(data.timestamp)}</div>
+        `;
+        item.onclick = () => {
+          selectedUUID = data.uuid;
+          overlay.style.display = 'none';
+          if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+          }
+          fetchTrupps(selectedUUID);
+        };
+        list.appendChild(item);
       });
     }
-  }
-  // Sortiere und zeige Kategorien
-  const sorted = sortUUIDData(uuidData);
-  if (sorted.aktiv.length > 0) {
-    const aktivLabel = document.createElement('div');
-    aktivLabel.style.fontWeight = 'bold';
-    aktivLabel.style.margin = '10px 0 4px 0';
-    aktivLabel.textContent = 'Aktiv (≤ 10 Sekunden)';
-    list.appendChild(aktivLabel);
-    sorted.aktiv.forEach(data => {
-      const item = document.createElement('div');
-      item.className = 'uuid-item';
-      item.innerHTML = `
-        <div class="uuid-header"><strong>UUID:</strong> ${data.uuid}</div>
-        <div class="device-name"><strong>Gerät:</strong> ${data.deviceName}</div>
-        <div class="timestamp"><strong>Letzte Sync:</strong> ${formatTimestamp(data.timestamp)}</div>
-        <div class="timer" data-timestamp="${data.timestamp || 0}"><strong>Zeit seit Sync:</strong> ${calculateTimeSince(data.timestamp)}</div>
-      `;
-      item.onclick = () => {
-        selectedUUID = data.uuid;
-        overlay.style.display = 'none';
-        if (refreshInterval) {
-          clearInterval(refreshInterval);
-          refreshInterval = null;
-        }
-        fetchTrupps(selectedUUID);
-      };
-      list.appendChild(item);
-    });
-  }
-  if (sorted.inaktiv.length > 0) {
-    const inaktivLabel = document.createElement('div');
-    inaktivLabel.style.fontWeight = 'bold';
-    inaktivLabel.style.margin = '18px 0 4px 0';
-    inaktivLabel.textContent = 'Inaktiv (> 10 Sekunden)';
-    list.appendChild(inaktivLabel);
-    sorted.inaktiv.forEach(data => {
-      const item = document.createElement('div');
-      item.className = 'uuid-item';
-      item.innerHTML = `
-        <div class="uuid-header"><strong>UUID:</strong> ${data.uuid}</div>
-        <div class="device-name"><strong>Gerät:</strong> ${data.deviceName}</div>
-        <div class="timestamp"><strong>Letzte Sync:</strong> ${formatTimestamp(data.timestamp)}</div>
-        <div class="timer" data-timestamp="${data.timestamp || 0}"><strong>Zeit seit Sync:</strong> ${calculateTimeSince(data.timestamp)}</div>
-      `;
-      item.onclick = () => {
-        selectedUUID = data.uuid;
-        overlay.style.display = 'none';
-        if (refreshInterval) {
-          clearInterval(refreshInterval);
-          refreshInterval = null;
-        }
-        fetchTrupps(selectedUUID);
-      };
-      list.appendChild(item);
-    });
+    if (sorted.inaktiv.length > 0) {
+      const inaktivLabel = document.createElement('div');
+      inaktivLabel.style.fontWeight = 'bold';
+      inaktivLabel.style.margin = '18px 0 4px 0';
+      inaktivLabel.textContent = 'Inaktiv (> 10 Sekunden)';
+      list.appendChild(inaktivLabel);
+      sorted.inaktiv.forEach(data => {
+        const item = document.createElement('div');
+        item.className = 'uuid-item';
+        item.innerHTML = `
+          <div class="uuid-header"><strong>UUID:</strong> ${data.uuid}</div>
+          <div class="device-name"><strong>Gerät:</strong> ${data.deviceName}</div>
+          <div class="timestamp"><strong>Letzte Sync:</strong> ${formatTimestamp(data.timestamp)}</div>
+          <div class="timer" data-timestamp="${data.timestamp || 0}"><strong>Zeit seit Sync:</strong> ${calculateTimeSince(data.timestamp)}</div>
+        `;
+        item.onclick = () => {
+          selectedUUID = data.uuid;
+          overlay.style.display = 'none';
+          if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+          }
+          fetchTrupps(selectedUUID);
+        };
+        list.appendChild(item);
+      });
+    }
+
+    // Entferne Abbrechen-Button, da Auswahl erzwungen
+    const cancelBtn = document.getElementById('uuid-cancel-btn');
+    if (cancelBtn) {
+      cancelBtn.style.display = 'none';
+    }
+
+    overlay.style.display = 'flex';
+
+    // Update timers every second
+    const updateTimers = () => {
+      const timers = list.querySelectorAll('.timer');
+      timers.forEach(timer => {
+        const timestamp = parseInt(timer.getAttribute('data-timestamp'));
+        timer.innerHTML = `<strong>Zeit seit Sync:</strong> ${calculateTimeSince(timestamp)}`;
+      });
+    };
+    setInterval(updateTimers, 1000);
+
+    // Scrollposition wiederherstellen
+    if (list) list.scrollTop = prevScroll;
   }
 
-  // Entferne Abbrechen-Button, da Auswahl erzwungen
-  const cancelBtn = document.getElementById('uuid-cancel-btn');
-  if (cancelBtn) {
-    cancelBtn.style.display = 'none';
-  }
-
-  overlay.style.display = 'flex';
-
-  // Update timers every second
-  const updateTimers = () => {
-    const timers = list.querySelectorAll('.timer');
-    timers.forEach(timer => {
-      const timestamp = parseInt(timer.getAttribute('data-timestamp'));
-      timer.innerHTML = `<strong>Zeit seit Sync:</strong> ${calculateTimeSince(timestamp)}`;
-    });
-  };
-  setInterval(updateTimers, 1000);
-
-  // Scrollposition wiederherstellen
-  if (list) list.scrollTop = prevScroll;
-
-  // Refresh overlay every 2 seconds
+  // Refresh overlay every 2 seconds (immer starten, auch bei 0 UUIDs)
   refreshInterval = setInterval(async () => {
     if (overlay.style.display === 'flex') {
+      const currentUuids = await fetchUUIDs();
+      uuids = currentUuids;
       await showUUIDOverlay(uuids);
     } else {
       clearInterval(refreshInterval);
       refreshInterval = null;
     }
   }, 2000);
+  isUpdatingOverlay = false;
 }
 
 // Fehler-Overlay global definieren

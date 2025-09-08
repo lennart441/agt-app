@@ -8,8 +8,11 @@
   <link rel="stylesheet" href="settings.css">
 </head>
 <body>
-  <button onclick="window.showTruppForm()">Neuer Trupp</button>
-  <button onclick="window.uploadToNextcloud()">Bericht erstellen</button>
+  <div id="sidebar">
+    <button id="neuer-trupp-btn" onclick="window.showTruppForm()">+<br> <br>T<br>R<br>U<br>P<br>P</button>
+    <button id="bericht-erstellen-btn" onclick="window.uploadToNextcloud()">B<br>E<br>R<br>I<br>C<br>H<br>T</button>
+    <button id="settings-btn" onclick="window.showSettingsOverlay()">E<br>I<br>N<br>S<br"T</button>
+  </div>
   <!-- <button onclick="testPressureReminderOverlay()">Test Overlay öffnen</button> -->
   <div id="main-flex-wrapper" style="display: flex; align-items: flex-start;">
     <div id="trupp-form-wrapper" style="display: none; min-width: 320px; margin-right: 32px;">
@@ -125,8 +128,6 @@
     Ihr Browser unterstützt das Audio-Element nicht.
   </audio>
 
-  <button id="settings-btn" style="position: fixed; bottom: 10px; right: 10px;">Einstellungen</button>
-
   <div id="settings-overlay" class="overlay" style="display: none;">
     <div class="settings-content">
       <div class="settings-left">
@@ -135,6 +136,8 @@
           <li data-setting="token" class="settings-item selected">Token ändern</li>
           <li data-setting="device" class="settings-item">Gerätename ändern</li>
           <li data-setting="takeover" class="settings-item">Übernahmeantrag</li>
+          <li data-setting="offline" class="settings-item">Offline-Modus</li>
+          <li data-setting="reset" class="settings-item">RESET</li>
         </ul>
       </div>
       <div class="settings-right" id="settings-detail">
@@ -153,12 +156,26 @@
           <div id="settings-takeover-uuid-list"></div>
           <button id="settings-takeover-send" disabled>Antrag senden</button>
         </div>
+        <div id="setting-offline" class="setting-panel" style="display:none;">
+          <h3>Offline-Modus</h3>
+          <p>Im Offline-Modus wird die gesamte Serverkommunikation deaktiviert. Truppdaten werden nur lokal gespeichert und synchronisiert, Übernahmeanträge sind nicht möglich, und Berichte werden als Download angeboten.</p>
+          <label class="switch">
+            <input type="checkbox" id="offline-mode-switch">
+            <span class="slider round"></span>
+          </label>
+          <span id="offline-mode-status" style="margin-left:12px; font-weight:bold;">Online</span>
+        </div>
+        <div id="setting-reset" class="setting-panel" style="display:none;">
+          <h3>Reset-Optionen</h3>
+          <p><strong>Reset Local Storage:</strong> Löscht alle gespeicherten Daten im Local Storage (z. B. Truppdaten, Gerätename, UUID). Die Seite wird anschließend neu geladen, um Änderungen anzuwenden. Dies ist nützlich, um lokale Daten zu bereinigen, ohne den Cache zu beeinflussen.</p>
+          <button id="reset-local-storage-btn" style="background:#ffc107; color:#000; padding:10px 20px; border:none; border-radius:4px; cursor:pointer; margin-bottom:20px;">Reset Local Storage</button>
+          <p><strong>Reset All:</strong> Löscht Local Storage, Service Worker Cache und andere temporäre Browser-Daten (z. B. Cached Assets für Offline-Nutzung). Die Seite wird neu geladen. Verwenden Sie dies, um eine vollständige Bereinigung durchzuführen, z. B. nach Updates oder Fehlern.</p>
+          <button id="reset-all-btn" style="background:#dc3545; color:#fff; padding:10px 20px; border:none; border-radius:4px; cursor:pointer;">Reset All</button>
+        </div>
       </div>
       <button id="settings-close-btn" class="close-btn">×</button>
     </div>
   </div>
-
-  <button id="debug-takeover-btn" style="position:fixed;bottom:60px;right:10px;z-index:10001;background:#dc3545;color:white;border:none;border-radius:6px;padding:0.7em 1.2em;font-size:1.1em;box-shadow:0 2px 8px rgba(0,0,0,0.12);cursor:pointer;">Übernahme-Overlay testen</button>
 
   <!-- Takeover Overlay -->
   <div id="takeover-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:10002; align-items:center; justify-content:center;">
@@ -211,6 +228,7 @@
   <script src="overlays.js"></script>
   <script src="ui.js"></script>
   <script src="report.js"></script>
+  <script src="lib/jspdf.umd.min.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/v1/client/sw.js')

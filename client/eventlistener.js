@@ -99,6 +99,7 @@ if (typeof SYNC_API_URL !== 'undefined') {
 }
 
 window.debugShowOwnTakeoverRequest = async function() {
+    if (localStorage.getItem('offlineMode') === 'true') return;
     if (!window.SYNC_API_URL || !window.OPERATION_TOKEN || !window.DEVICE_UUID) return;
     try {
         const takeoverRes = await fetch(`${window.SYNC_API_URL.replace('/trupps', '/takeover-request')}?token=${encodeURIComponent(window.OPERATION_TOKEN)}&uuid=${window.DEVICE_UUID}`);
@@ -159,4 +160,66 @@ window.addEventListener('DOMContentLoaded', function() {
             }
         };
     }
+});
+
+// Event-Listener für Settings-Overlay
+document.addEventListener('DOMContentLoaded', () => {
+  // Reset Local Storage Button
+  const resetLocalStorageBtn = document.getElementById('reset-local-storage-btn');
+  if (resetLocalStorageBtn) {
+    resetLocalStorageBtn.addEventListener('click', () => {
+      if (confirm('Sind Sie sicher, dass Sie den Local Storage zurücksetzen möchten? Alle lokalen Daten werden gelöscht und die Seite neu geladen.')) {
+        localStorage.clear();
+        location.reload();
+      }
+    });
+  }
+
+  // Reset All Button
+  const resetAllBtn = document.getElementById('reset-all-btn');
+  if (resetAllBtn) {
+    resetAllBtn.addEventListener('click', () => {
+      if (confirm('Sind Sie sicher, dass Sie alles zurücksetzen möchten? Local Storage, Cache und temporäre Daten werden gelöscht, und die Seite wird neu geladen.')) {
+        localStorage.clear();
+        // Clear all caches
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            names.forEach(name => caches.delete(name));
+          });
+        }
+        // Unregister service worker if present
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(registrations => {
+            registrations.forEach(registration => registration.unregister());
+          });
+        }
+        location.reload();
+      }
+    });
+  }
+
+  // OFFLINE-MODUS: Slider-Event und Statusanzeige
+  window.setupOfflineModeToggle = function() {
+    const slider = document.getElementById('offline-mode-switch');
+    const status = document.getElementById('offline-mode-status');
+    if (!slider || !status) return;
+    // Initialer Status aus localStorage
+    const offline = localStorage.getItem('offlineMode') === 'true';
+    slider.checked = offline;
+    status.textContent = offline ? 'Offline' : 'Online';
+    slider.addEventListener('change', function() {
+      localStorage.setItem('offlineMode', slider.checked ? 'true' : 'false');
+      status.textContent = slider.checked ? 'Offline' : 'Online';
+      // Optional: Seite neu laden, um Modus zu übernehmen
+      // location.reload();
+    });
+  }
+
+  // Setup für Offline-Modus beim Öffnen des Einstellungsmenüs
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', function() {
+      setTimeout(window.setupOfflineModeToggle, 200);
+    });
+  }
 });

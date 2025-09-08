@@ -122,9 +122,17 @@ async function ladeAuftragVorschlaege() {
 }
 
 /**
+ * Überprüft, ob die Anwendung im Offline-Modus ist
+ */
+function isOfflineMode() {
+  return localStorage.getItem('offlineMode') === 'true';
+}
+
+/**
  * Synchronisiert die aktuellen Truppdaten mit dem Server
  */
 async function syncTruppsToServer() {
+  if (isOfflineMode()) return; // Keine Serverkommunikation im Offline-Modus
   if (!DEVICE_NAME) return; // Nicht syncen, wenn kein Gerätename gesetzt
   try {
     // Lade Trupps aus localStorage über die Helper-Funktion

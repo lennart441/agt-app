@@ -23,6 +23,7 @@ function debugLog(clientType, step, message) {
  * @param {string} token - Operationstoken.
  */
 async function loadAvailableUUIDs(token) {
+    if (isOfflineMode()) return [];
     try {
         const url = `${window.SYNC_API_URL.replace('/trupps', '/uuids')}?token=${encodeURIComponent(token)}`;
         const res = await fetch(url);
@@ -43,6 +44,16 @@ async function loadAvailableUUIDs(token) {
  * Zeigt die UUID-Liste im Übernahmeantrag (UI-bezogen, aber hier für Konsistenz).
  */
 async function showTakeoverUUIDList() {
+    if (isOfflineMode()) {
+        const listDiv = document.getElementById('settings-takeover-uuid-list');
+        if (listDiv) {
+            listDiv.innerHTML = '<div class="no-uuid-message">Offline-Modus aktiv. Keine Geräte verfügbar.</div>';
+        }
+        if (document.getElementById('settings-takeover-send')) {
+            document.getElementById('settings-takeover-send').disabled = true;
+        }
+        return;
+    }
     const listDiv = document.getElementById('settings-takeover-uuid-list');
     if (!listDiv) return;
     listDiv.innerHTML = '<div>Lade UUIDs...</div>';
@@ -142,11 +153,23 @@ function createChecksum(trupps) {
 }
 
 /**
+ * Hilfsfunktion: Überprüft, ob der Offline-Modus aktiv ist.
+ * @returns {boolean} - Wahr, wenn der Offline-Modus aktiv ist.
+ */
+function isOfflineMode() {
+  return localStorage.getItem('offlineMode') === 'true';
+}
+
+/**
  * Sendet einen Übernahmeantrag.
  * Reihenfolge: Schritt 2 im Prozess - wird vom neuen Client ausgeführt.
  * @param {string} targetUUID - UUID des Zielgeräts (alter Client).
  */
 window.sendTakeoverRequest = async function(targetUUID) {
+    if (isOfflineMode()) {
+        window.showErrorOverlay('Übernahmeanträge sind im Offline-Modus deaktiviert.');
+        return;
+    }
     try {
         const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-request')}`;
         const res = await fetch(url, {
@@ -185,6 +208,7 @@ window.sendTakeoverRequest = async function(targetUUID) {
  * @param {string} targetUUID - UUID des Zielgeräts.
  */
 window.pollTakeoverResponse = function(targetUUID) {
+    if (isOfflineMode()) return;
     let pollInterval = setInterval(async () => {
         try {
             const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-response')}?token=${window.OPERATION_TOKEN}&requesterUUID=${window.DEVICE_UUID}`;
@@ -220,6 +244,7 @@ window.pollTakeoverResponse = function(targetUUID) {
  * @param {string} token - Operationstoken.
  */
 function startTakeoverPolling(deviceUUID, token) {
+    if (isOfflineMode()) return;
     if (takeoverPollingInterval) return;
     takeoverPollingInterval = setInterval(async () => {
         try {
@@ -325,6 +350,7 @@ window.sendTakeoverResponse = async function(requesterUUID, status) {
  * @param {string} oldUUID - UUID des alten Geräts, von dem die Daten übernommen werden.
  */
 window.pollTakeoverConfirm = function(oldUUID) {
+    if (isOfflineMode()) return;
     if (!oldUUID && window.TAKEOVER_OLD_UUID) oldUUID = window.TAKEOVER_OLD_UUID;
     debugLog('Neuer Client', 4, `Starte pollTakeoverConfirm mit oldUUID: ${oldUUID}`);
     let pollInterval = setInterval(async () => {
@@ -360,6 +386,7 @@ window.pollTakeoverConfirm = function(oldUUID) {
  * @param {string} oldUUID - UUID des alten Geräts.
  */
 window.fetchAndStoreTakeoverData = async function(oldUUID) {
+    if (isOfflineMode()) return;
     debugLog('Neuer Client', 5, `fetchAndStoreTakeoverData aufgerufen mit oldUUID: ${oldUUID}`);
     try {
         const url = `${window.SYNC_API_URL}?token=${window.OPERATION_TOKEN}&uuid=${oldUUID}`;
@@ -401,6 +428,7 @@ window.fetchAndStoreTakeoverData = async function(oldUUID) {
  * @param {string} checksum - Die erstellte Prüfsumme.
  */
 async function sendChecksumToServer(oldUUID, checksum) {
+    if (isOfflineMode()) return;
     try {
         const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-checksum')}`;
         const res = await fetch(url, {
@@ -431,6 +459,7 @@ async function sendChecksumToServer(oldUUID, checksum) {
  * @param {string} newUUID - UUID des neuen Clients.
  */
 window.syncTruppsToServerWithNewUUID = async function(newUUID) {
+    if (isOfflineMode()) return;
     try {
         const truppsToSync = window.getAllTrupps();
         const deviceName = window.DEVICE_NAME || 'AGT-Device'; // Fallback, falls undefined
@@ -463,3 +492,8 @@ window.syncTruppsToServerWithNewUUID = async function(newUUID) {
         debugLog('Alter Client', 3, `Error syncing trupps with newUUID: ${error}`);
     }
 };
+
+window.startTakeoverPolling = function(deviceUUID, token) {
+    if (isOfflineMode()) return;
+    startTakeoverPolling(deviceUUID, token);
+}
