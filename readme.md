@@ -1,26 +1,37 @@
-## Was kann die Atemschutzüberwachungs-Anwendung?
+## AGT-App: Digitale Atemschutzüberwachung
 
 Diese Anwendung dient der digitalen Überwachung und Dokumentation von Atemschutztrupps bei Feuerwehreinsätzen. Sie besteht aus mehreren Modulen, die zusammenarbeiten:
 
-### 1. **Atemschutzüberwachung (Client)**
-- **Trupps anlegen:** Du kannst neue Atemschutztrupps mit Namen, Auftrag und Mitgliedern (Truppführer, Truppmänner) anlegen.
-- **Druckmeldungen & Notizen:** Während des Einsatzes können für jeden Trupp regelmäßig aktuelle Flaschendrücke und Notizen gemeldet werden.
-- **Timer:** Die Anwendung überwacht automatisch die Zeit seit der letzten Meldung und warnt, wenn ein Trupp zu lange keine Rückmeldung gibt.
-- **Notfallmanagement:** Es können Notfälle ausgelöst und beendet werden.
-- **Synchronisation:** Alle Daten werden automatisch mit dem zentralen Sync-Server synchronisiert, sodass mehrere Geräte parallel arbeiten können.
+### Architektur & Module
+- **Client (`client/`):** Web-App zur Verwaltung und Überwachung von Trupps. UI, Overlays, lokale Speicherung, Synchronisation und Event-Logik. Alle Daten werden in `localStorage` gehalten und regelmäßig mit dem Sync-Server synchronisiert.
+- **Monitoring-Client (`monitoring-client/`):** Read-only Dashboard zur Live-Überwachung aller Trupps eines Einsatzes (gefiltert per Token). Zeigt Warnungen bei kritischen Zuständen (niedriger Druck, Zeitüberschreitung).
+- **Sync-Server (`sync-server/`):** Node.js-Server für die Echtzeit-Synchronisation aller Clients. Daten werden pro Einsatz-Token getrennt.
+- **Report-Server (`report-server/`):** Node.js-Server zum Erstellen und Hochladen von PDF-Berichten nach Nextcloud.
+
+### Hauptfunktionen
+- **Trupps anlegen & verwalten:** Name, Auftrag, Mitglieder, Druckmeldungen, Notizen, Statusänderungen (an/abgelegt, aufgelöst, Notfall).
+- **Automatische Zeitüberwachung:** Timer warnt bei fehlender Rückmeldung.
+- **Notfallmanagement:** Notfälle können ausgelöst und beendet werden.
+- **Synchronisation:** Alle Daten werden automatisch mit dem Sync-Server synchronisiert. Mehrere Geräte können parallel arbeiten.
 - **Berichte:** Nach dem Einsatz können Berichte als PDF erstellt und direkt an Nextcloud übertragen werden.
 
-### 2. **Monitoring (Monitoring-Client)**
-- **Live-Überwachung:** Auf einem separaten Gerät (z.B. im ELW) können alle Trupps und deren Status live überwacht werden.
-- **Filterung nach Einsatz:** Über einen Token werden nur die Trupps des aktuellen Einsatzes angezeigt.
-- **Warnungen:** Kritische Zustände (z.B. niedriger Druck, Zeitüberschreitung) werden hervorgehoben.
+### Workflows & Besonderheiten
+- **Alle Daten persistent in `localStorage` speichern!**
+- **Trupp-Status und UI-Logik:** Buttons und Overlays werden abhängig vom Status und Notfall angezeigt (siehe `client/ui.js`, `client/overlays.js`).
+- **Service Worker:** Assets werden für Offline-Nutzung gecacht, API-Calls sind davon ausgenommen.
+- **Einsatz-Token:** Trennt Daten verschiedener Einsätze (siehe `client/logic.js`).
+- **Globales Event-Handling:** UI-Events und Hilfsfunktionen sind als `window.*` verfügbar (`client/eventlistener.js`).
+- **PDF-Export:** Über `window.uploadToNextcloud()` (nutzt `jspdf.umd.min.js` und `webdav.min.js`).
+- **Lokalisierung:** UI und Kommentare sind auf Deutsch.
 
-### 3. **Sync-Server**
-- **Zentrale Datendrehscheibe:** Alle Clients und Monitoring-Clients synchronisieren ihre Daten über diesen Server.
-- **Mehrere Einsätze:** Über einen Einsatz-Token werden die Daten verschiedener Einsätze getrennt gehalten.
-
-### 4. **Report-Server**
-- **PDF-Export:** Automatisches Erstellen und Hochladen von Einsatzberichten (PDF) zu Nextcloud.
+### Start & Entwicklung
+- **Client starten:** `client/index.html` im Browser öffnen (empfohlen: statischer Server wie Five Server).
+- **Monitoring starten:** `monitoring-client/monitoring.html` im Browser öffnen.
+- **Server starten:**
+  - Sync-Server: `node sync-server.js` oder via Docker Compose
+  - Report-Server: `node server.js` oder via Docker Compose
+- **Debugging:** Browser Dev-Tools, Daten in `localStorage`, Sync via REST-API.
+- **Kein Build-Step, keine automatisierten Tests.**
 
 ---
 
@@ -31,5 +42,7 @@ Mit dieser Anwendung kannst du Atemschutztrupps digital verwalten, überwachen, 
 
 
 TODO
-- UI optimieren für Ipad
-- auf Ipad fest installieren
+- Akusticher Alarm nach 12 Minuten
+- beim erstellen eines trupps auf vollständigkeit der daten achten
+- scrollen auserhalb der elemente verhindern!
+

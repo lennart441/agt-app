@@ -2,10 +2,10 @@
 
 ## Project Architecture
 - **Modules:**
-	- `client/`: Main web client for managing and monitoring fire brigade teams (Trupps). Handles UI, overlays, local storage, sync logic, and event logic.
-	- `monitoring-client/`: Read-only dashboard for live status of all Trupps, filtered by operation token.
-	- `sync-server/`: Node.js server for real-time data synchronization between clients. Data is separated by operation token.
-	- `report-server/`: Node.js server for generating and uploading PDF reports to Nextcloud.
+  - `client/`: Main web client for managing and monitoring fire brigade teams (Trupps). Handles UI, overlays, local storage, sync logic, and event logic.
+  - `monitoring-client/`: Read-only dashboard for live status of all Trupps, filtered by operation token.
+  - `sync-server/`: Node.js server for real-time data synchronization between clients. Data is separated by operation token.
+  - `report-server/`: Node.js server for generating and uploading PDF reports to Nextcloud.
 
 ## Data Flow & Integration
 - **Trupps** are created/managed in `client/` and synchronized via `sync-server/`.
@@ -44,8 +44,8 @@
 - **Run Client:** Open `client/index.html` in browser. For local development, use a static server (e.g. Five Server).
 - **Run Monitoring:** Open `monitoring-client/monitoring.html` in browser.
 - **Start Servers:**
-	- `sync-server/`: `node sync-server.js` (or via Docker Compose)
-	- `report-server/`: `node server.js` (or via Docker Compose)
+  - `sync-server/`: `node sync-server.js` (or via Docker Compose)
+  - `report-server/`: `node server.js` (or via Docker Compose)
 - **Build/Test:** No build step; pure JS/HTML/CSS. No automated tests present.
 - **Debugging:** Use browser dev tools. Data is stored in localStorage and synced via REST API.
 
@@ -57,8 +57,8 @@
 ## Project-Specific Conventions
 - **Global Functions:** Most client logic is exposed via `window.*` for UI event handlers, overlays, and event logic.
 - **Trupp Data Model:**
-	- `{ id, name, mission, previousMission, members: [{name, druck, role}], meldungen: [], inaktiv, notfallAktiv }`
-	- Pressure values must be >= 270 bar (see validation in `logic.js`).
+  - `{ id, name, mission, previousMission, members: [{name, druck, role}], meldungen: [], inaktiv, notfallAktiv }`
+  - Pressure values must be >= 270 bar (see validation in `logic.js`).
 - **Overlays:** UI overlays for name, pressure, mission, emergency, etc. are managed in `overlays.js` and triggered from UI.
 - **Sync API:** URL is set in `logic.js` (`SYNC_API_URL`). Token is required for all sync operations.
 - **PDF Export:** Triggered via `window.uploadToNextcloud()`; uses `report.js` and `jspdf.umd.min.js`.
