@@ -3,6 +3,7 @@ body {
   background: #f4f4f4;
   margin: 0;
   padding: 0;
+  overflow-y: hidden; /* verhindert unnötiges vertikales Scrollen */
 }
 
 h1, h2, h3 {
@@ -25,7 +26,9 @@ h1, h2, h3 {
   overflow-x: auto;
   scrollbar-width: thick;
   scrollbar-color: #007bff #e0e0e0;
-  margin-left: 80px; /* Adjust for new sidebar width */
+  padding-left: 80px; /* Platz für Sidebar, verhindert Überlappung und Scroll-Bug */
+  min-height: 100vh; /* verhindert, dass der Content kleiner als das Viewport ist */
+  box-sizing: border-box; /* verhindert, dass Padding die Gesamtbreite beeinflusst */
 }
 
 #trupp-container {
@@ -40,7 +43,7 @@ h1, h2, h3 {
 
 #archiv-container {
   flex: 0 0 auto;
-  min-width: 350px;
+  min-width: 0px;
   max-width: 400px;
   padding: 12px;
   margin-left: 0.5rem;
@@ -587,6 +590,7 @@ button:focus, .druck-btn:focus, .name-btn:focus, .mission-btn:focus, input:focus
   justify-content: flex-start;
   padding-top: 20px;
   z-index: 100;
+  overflow-y: hidden; /* verhindert Scrollen in der Sidebar */
 }
 
 #sidebar button {

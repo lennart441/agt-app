@@ -393,6 +393,22 @@ window.createTrupp = function() {
       });
     }
   }
+
+  // --- VALIDIERUNG ---
+  let errorMsg = '';
+  if (!name || name.length < 2) errorMsg += 'Truppname fehlt oder zu kurz!\n';
+  if (!mission || mission.length < 2) errorMsg += 'Auftrag fehlt oder zu kurz!\n';
+  if (members.length < 2) errorMsg += 'Mindestens zwei Mitglieder erforderlich!\n';
+  members.forEach((m, idx) => {
+    if (!m.name || m.name.length < 2) errorMsg += `Mitglied ${idx + 1}: Name fehlt oder zu kurz!\n`;
+    if (!m.druck || isNaN(m.druck) || m.druck < 270) errorMsg += `Mitglied ${idx + 1}: Druck muss mindestens 270 bar sein!\n`;
+  });
+  if (errorMsg) {
+    if (typeof showErrorOverlay === 'function') showErrorOverlay(errorMsg.trim());
+    return;
+  }
+  // --- ENDE VALIDIERUNG ---
+
   // Neues Trupp-Objekt
   const trupp = {
     id: Date.now(),

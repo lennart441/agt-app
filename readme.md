@@ -42,7 +42,6 @@ Mit dieser Anwendung kannst du Atemschutztrupps digital verwalten, überwachen, 
 
 
 TODO
-- Akusticher Alarm nach 12 Minuten
-- beim erstellen eines trupps auf vollständigkeit der daten achten
-- scrollen auserhalb der elemente verhindern!
-
+- bug i monitor (flackern beim aktualiesieren der trupps)
+- html, css und js datein aufräumen und elemnte an den richtigen platz verschieben
+- code kommentieren
