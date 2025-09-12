@@ -6,8 +6,8 @@
 // Alle Funktionen werden als window-Funktionen verwendet
 let memberCounter = 2;
 let selectedMission = '';
-// const PRESSURE_REMINDER_SECONDS = 12 * 60; // Zeit in Sekunden bis zum Druck-Erinnerungs-Alarm
-const PRESSURE_REMINDER_SECONDS = 20; // DEV 
+const PRESSURE_REMINDER_SECONDS = 12 * 60; // Zeit in Sekunden bis zum Druck-Erinnerungs-Alarm
+//const PRESSURE_REMINDER_SECONDS = 20; // DEV 
 
 /**
  * Zeigt das Formular zum Erstellen eines neuen Trupps an oder versteckt es.
