@@ -6,6 +6,8 @@
 // Alle Funktionen werden als window-Funktionen verwendet
 let memberCounter = 2;
 let selectedMission = '';
+const PRESSURE_REMINDER_SECONDS = 12 * 60; // Zeit in Sekunden bis zum Druck-Erinnerungs-Alarm
+// const PRESSURE_REMINDER_SECONDS = 20; // BETA
 
 /**
  * Zeigt das Formular zum Erstellen eines neuen Trupps an oder versteckt es.
@@ -189,6 +191,11 @@ function renderTrupp(trupp) {
       } else if (diff >= 540) {
         card.classList.add('warnphase');
       }
+      // Druck-Erinnerungs-Overlay nur einmal nach Ablauf anzeigen
+      if (diff >= PRESSURE_REMINDER_SECONDS && !trupp.pressureReminderShown) {
+        showPressureReminderOverlay(trupp.id);
+        trupp.pressureReminderShown = true;
+      }
     }
     updateTimer();
     if (timerDiv._interval) clearInterval(timerDiv._interval);
@@ -197,6 +204,8 @@ function renderTrupp(trupp) {
     timerDiv.textContent = "";
     if (timerDiv._interval) clearInterval(timerDiv._interval);
     card.classList.remove('warnphase', 'alarmphase');
+    // Reset pressure reminder state when timer is reset
+    trupp.pressureReminderShown = false;
   }
 
   // Separator
@@ -534,6 +543,9 @@ function startTimer(trupp) {
 
   if (trupp.intervalRef) clearInterval(trupp.intervalRef);
 
+  // Initialisiere Status-Variable für Alarm
+  trupp.pressureReminderTriggered = false;
+
   trupp.intervalRef = setInterval(() => {
     const vergangen = Math.floor((Date.now() - trupp.startZeit) / 1000);
     const min = Math.floor(vergangen / 60).toString().padStart(2, '0');
@@ -553,10 +565,16 @@ function startTimer(trupp) {
       card.classList.remove("warnphase", "alarmphase");
     }
 
-    // Nach 12 Minuten das Druck-Erinnerungs-Overlay öffnen
-    if (trupp.timer >= 12 * 60 * 1000 && !trupp.pressureReminderShown) {
-      showPressureReminderOverlay(trupp.id);
-      trupp.pressureReminderShown = true;
+    // Druck-Erinnerungs-Overlay nur einmal nach Ablauf anzeigen
+    if (vergangen >= PRESSURE_REMINDER_SECONDS) {
+      if (!trupp.pressureReminderTriggered) {
+        showPressureReminderOverlay(trupp.id);
+        trupp.pressureReminderTriggered = true;
+      }
+    } else {
+      // Reset, falls Timer wieder unter die Grenze fällt
+      trupp.pressureReminderTriggered = false;
     }
   }, 1000);
 }
+

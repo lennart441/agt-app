@@ -1,4 +1,6 @@
 /* mon-trupp.css: Trupp-spezifische Styles, Warnungen, Pressure-Bar, Timer, Meldung, Card-Phasen */
+
+/* Trupp-Karten und Trupp-Formular: Grundlayout für Karten und Formular */
 .trupp-card, .trupp-form {
   background: white;
   padding: 1rem;
@@ -9,134 +11,60 @@
   flex: 0 0 auto;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
-#trupp-form-wrapper {
-  display: none;
-  flex: 0 0 auto;
-  min-width: 250px;
-  max-width: 300px;
-  order: -1;
-}
-.trupp-member {
-  margin-bottom: 1rem;
-}
+
+
+
+/* Warnphase: gelber Rahmen für Karten */
 .trupp-card.warnphase {
   border: 3px solid yellow;
 }
+
+/* Alarmphase: roter Rahmen und Blinken für Karten */
 .trupp-card.alarmphase {
   border: 3px solid red;
   animation: blink 1s infinite;
 }
+
+/* Niedriger Druck: gelber Hintergrund für Karten */
 .trupp-card.low-pressure {
   background: #ffc107;
   color: black;
 }
+
+/* Notfall: roter Hintergrund für Karten */
 .trupp-card.notfall {
   background: #dc3545;
   color: white;
 }
+
+/* Blink-Animation für Alarmphase */
 @keyframes blink {
   0%, 100% { border-color: red; }
   50% { border-color: white; }
 }
+
+/* Warnungstext (z.B. niedriger Druck) */
 .warnung {
   color: red;
   font-weight: bold;
 }
-#druck-overlay, #name-overlay, #mission-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-#notfall-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-#druck-content, #name-content, #mission-content {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  position: relative;
-  width: 95vw;
-  height: 95vh;
-  max-width: 95vw;
-  max-height: 95vh;
-  overflow-y: auto;
-}
-#notfall-content {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  position: relative;
-  width: 90vw;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-#druck-grid, #name-grid, #mission-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-  margin-top: 1rem;
-}
-.custom-name, .custom-mission {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 0.5rem;
-}
-.custom-name input, .custom-mission input {
-  margin-bottom: 0.5rem;
-  padding: 0.6rem;
-  font-size: 1.2rem;
-}
-#notfall-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-#notfall-content button {
-  margin-top: 1rem;
-}
-.druck-btn, .name-btn, .mission-btn {
-  padding: 1.2rem;
-  font-size: 1.4rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background: #f8f9fa;
-  cursor: pointer;
-  text-align: center;
-  color: black;
-  touch-action: manipulation;
-  white-space: normal;
-  word-wrap: break-word;
-}
 
+
+/* Inaktive Trupp-Karte: ausgegraut und weniger sichtbar */
 .trupp-card.inaktiv {
   opacity: 0.5;
   filter: grayscale(70%);
   z-index: 0;
   transition: all 0.3s ease;
 }
+/* Aktive Trupp-Karte: volle Sichtbarkeit */
 .trupp-card.aktiv {
   opacity: 1;
   filter: none;
   z-index: 1;
 }
+
+/* Schließen-Button für Overlays */
 .close-btn {
   position: absolute;
   top: 10px;
@@ -150,22 +78,13 @@
   font-size: 1.2rem;
   color: white;
 }
-#meldung-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-#meldung-form label {
-  font-weight: bold;
-}
-#meldung-form select, #meldung-form input {
-  padding: 0.4rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+
+/* Info-Bereich für Synchronisation */
 #sync-info {
   margin: 10px 0;
 }
+
+/* Druckbalken-Container für Trupp-Karten */
 .pressure-bar-container {
   width: 100%;
   background: #e0e0e0;
@@ -173,25 +92,33 @@
   height: 20px;
   margin: 0.5rem 0;
 }
+/* Druckbalken selbst, farblich je nach Druck */
 .pressure-bar {
   height: 100%;
   border-radius: 4px;
   transition: width 0.3s ease;
 }
+/* Druckbalken: niedriger Druck (rot) */
 .pressure-bar.low {
   background: #dc3545;
 }
+/* Druckbalken: mittlerer Druck (gelb) */
 .pressure-bar.medium {
   background: #ffc107;
 }
+/* Druckbalken: hoher Druck (grün) */
 .pressure-bar.high {
   background: #28a745;
 }
+
+/* Timer-Anzeige in Trupp-Karte */
 .timer-bold {
   font-weight: bold;
   font-size: 1.1rem;
   margin-top: 0.5rem;
 }
+
+/* Separator zwischen Meldungen */
 .meldung-separator {
   border-top: 1px solid #ccc;
   margin: 0.5rem 0;

@@ -1,4 +1,6 @@
 /* mon-base.css: Grundlayout, Buttons, Container, Overlay, Settings */
+
+/* Grundlegende Formatierung für den Body, setzt Schriftart und Hintergrundfarbe für die gesamte Seite */
 body {
   font-family: sans-serif;
   background: #f4f4f4;
@@ -6,6 +8,7 @@ body {
   padding: 0;
 }
 
+/* Überschriften ohne oberen Abstand */
 h1, h2, h3 {
   margin-top: 0;
 }
@@ -36,6 +39,7 @@ h1, h2, h3 {
   background: #0056b3;
 }
 
+/* Grundlegende Button-Formatierung für alle Buttons */
 button {
   margin: 0.25rem 0.1rem;
   padding: 0.4rem 0.8rem;
@@ -46,13 +50,8 @@ button {
   color: white;
   cursor: pointer;
 }
-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-.notfall-btn {
-  background: #dc3545;
-}
+
+/* Grundlegende Formatierung für Eingabefelder und Selects */
 input, select {
   width: 100%;
   margin: 0.25rem 0 0.5rem;
@@ -62,6 +61,7 @@ input, select {
   box-sizing: border-box;
 }
 
+/* Overlay für Modale Fenster (z.B. UUID-Auswahl, Einstellungen, Fehler) */
 .overlay {
   position: fixed;
   top: 0;
@@ -74,6 +74,7 @@ input, select {
   align-items: center;
   z-index: 10000;
 }
+/* Inhalt eines Overlays, zentriert und mit weißem Hintergrund */
 .overlay-content {
   background: white;
   padding: 20px;
@@ -82,15 +83,18 @@ input, select {
   width: 90%;
   text-align: center;
 }
+/* Overlay für UUID-Auswahl, Scrollbereich */
 #uuid-overlay .overlay-content {
   max-height: 80vh;
   overflow-y: auto;
 }
+/* Liste der UUIDs im Overlay */
 #uuid-list {
   margin: 20px 0;
   max-height: 60vh;
   overflow-y: auto;
 }
+/* Einzelne UUID-Auswahlkarte */
 .uuid-item {
   display: block;
   margin: 10px 0;
@@ -103,36 +107,43 @@ input, select {
   transition: all 0.3s ease;
   font-family: sans-serif;
 }
+/* Hover-Effekt für UUID-Karte */
 .uuid-item:hover {
   background: linear-gradient(135deg, #e0e0e0, #d0d0d0);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
   transform: translateY(-2px);
 }
+/* Ausgewählte UUID-Karte */
 .uuid-item.selected {
   background: linear-gradient(135deg, #d4f7d4, #b2e6b2);
   border: 2px solid #28a745;
   color: #155724;
 }
+/* Überschrift in UUID-Karte */
 .uuid-header {
   font-size: 1.1em;
   margin-bottom: 8px;
   color: #333;
 }
+/* Gerätename in UUID-Karte */
 .device-name {
   font-size: 1em;
   margin-bottom: 8px;
   color: #555;
 }
+/* Zeitstempel in UUID-Karte */
 .timestamp {
   font-size: 0.9em;
   margin-bottom: 8px;
   color: #777;
 }
+/* Timer-Anzeige in UUID-Karte */
 .timer {
   font-size: 1em;
   font-weight: bold;
   color: #007bff;
 }
+/* Meldung, wenn keine UUIDs vorhanden sind */
 .no-uuid-message {
   text-align: center;
   font-size: 1.2em;
@@ -142,6 +153,8 @@ input, select {
   border-radius: 8px;
   border: 1px solid #ddd;
 }
+
+/* Einstellungen-Overlay: Layout für Einstellungen */
 .settings-content {
   display: flex;
   flex-direction: row;
@@ -154,6 +167,7 @@ input, select {
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   position: relative;
 }
+/* Linke Spalte im Einstellungen-Overlay (Menü) */
 .settings-left {
   width: 200px;
   border-right: 1px solid #eee;
@@ -163,15 +177,18 @@ input, select {
   max-height: 350px;
   overflow-y: auto;
 }
+/* Überschrift im linken Bereich */
 .settings-left h2 {
   margin-top: 0;
   font-size: 1.2em;
 }
+/* Liste der Einstellungen */
 #settings-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
+/* Einzelner Menüpunkt im Einstellungen-Menü */
 .settings-item {
   padding: 10px 8px;
   margin-bottom: 8px;
@@ -180,10 +197,12 @@ input, select {
   background: #e0e0e0;
   transition: background 0.2s;
 }
+/* Ausgewählter oder Hover-Menüpunkt */
 .settings-item.selected, .settings-item:hover {
   background: #007bff;
   color: white;
 }
+/* Rechter Bereich im Einstellungen-Overlay (Detailpanel) */
 .settings-right {
   flex: 1;
   padding: 24px;
@@ -191,17 +210,21 @@ input, select {
   max-height: 80vh;
   overflow-y: auto;
 }
+/* Panel für einzelne Einstellung (wird ein-/ausgeblendet) */
 .setting-panel {
   display: none;
 }
+/* Label im Einstellungs-Panel */
 .setting-panel label {
   font-weight: bold;
   margin-bottom: 8px;
   display: block;
 }
+/* Panel für Token-Einstellung */
 #setting-token {
   display: block;
 }
+/* Schließen-Button für Overlays */
 .close-btn {
   position: absolute;
   top: 16px;
@@ -216,17 +239,21 @@ input, select {
   color: white;
   z-index: 10;
 }
+
+/* Schieberegler für Mehrfachauswahl (Switch) */
 .switch {
   position: relative;
   display: inline-block;
   width: 50px;
   height: 28px;
 }
+/* Unsichtbares Input-Feld für Switch */
 .switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
+/* Slider-Design für Switch */
 .slider {
   position: absolute;
   cursor: pointer;
@@ -238,6 +265,7 @@ input, select {
   transition: .4s;
   border-radius: 28px;
 }
+/* Kreis im Slider */
 .slider:before {
   position: absolute;
   content: "";
@@ -249,12 +277,15 @@ input, select {
   transition: .4s;
   border-radius: 50%;
 }
+/* Switch aktiviert (grün) */
 input:checked + .slider {
   background-color: #28a745;
 }
+/* Kreis nach rechts verschieben bei aktiviertem Switch */
 input:checked + .slider:before {
   transform: translateX(22px);
 }
+/* Switch im Sync-Panel */
 #setting-sync .switch {
   margin-left: 0;
 }

@@ -50,7 +50,6 @@ h1, h2, h3 {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  height: 100%;
 }
 
 .trupp-card, .trupp-form {
@@ -62,6 +61,8 @@ h1, h2, h3 {
   max-width: 300px;
   flex: 0 0 auto;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  height: 90vh; /* Begrenze die Höhe auf die Viewport-Höhe */
+  overflow-y: auto; /* Ermöglicht vertikales Scrollen */
 }
 
 #trupp-form-wrapper {
