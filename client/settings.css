@@ -125,3 +125,9 @@
     text-align: center;
     color: #666;
 }
+#setting-info small {
+  display: block;
+  margin-top: 32px;
+  text-align: center;
+  color: #888;
+}

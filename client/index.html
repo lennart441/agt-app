@@ -12,7 +12,7 @@
     <button id="neuer-trupp-btn" onclick="window.showTruppForm()">+<br> <br>T<br>R<br>U<br>P<br>P</button>
     <button id="bericht-erstellen-btn" onclick="window.uploadToNextcloud()">B<br>E<br>R<br>I<br>C<br>H<br>T</button>
     <button id="sidebar-takeover-btn" onclick="window.openTakeoverSettingsShortcut()">Ü<br>B<br>E<br>R<br>G<br>A<br>B<br>E</button>
-    <button id="settings-btn" onclick="window.showSettingsOverlay()">E<br>I<br>N<br>S<br>T</button>
+    <button id="settings-btn" onclick="window.showSettingsOverlay()">E<br>I<br>N<br>S<br"T</button>
     
   </div>
   <!-- <button onclick="testPressureReminderOverlay()">Test Overlay öffnen</button> -->
@@ -140,6 +140,7 @@
           <li data-setting="takeover" class="settings-item">Übernahmeantrag</li>
           <li data-setting="offline" class="settings-item">Offline-Modus</li>
           <li data-setting="reset" class="settings-item">RESET</li>
+          <li data-setting="info" class="settings-item">Info</li>
         </ul>
       </div>
       <div class="settings-right" id="settings-detail">
@@ -173,6 +174,21 @@
           <button id="reset-local-storage-btn" style="background:#ffc107; color:#000; padding:10px 20px; border:none; border-radius:4px; cursor:pointer; margin-bottom:20px;">Reset Local Storage</button>
           <p><strong>Reset All:</strong> Löscht Local Storage, Service Worker Cache und andere temporäre Browser-Daten (z. B. Cached Assets für Offline-Nutzung). Die Seite wird neu geladen. Verwenden Sie dies, um eine vollständige Bereinigung durchzuführen, z. B. nach Updates oder Fehlern.</p>
           <button id="reset-all-btn" style="background:#dc3545; color:#fff; padding:10px 20px; border:none; border-radius:4px; cursor:pointer;">Reset All</button>
+        </div>
+        <div id="setting-info" class="setting-panel" style="display:none;">
+          <h3>Info</h3>
+          <p><strong>Version:</strong> <span id="info-version"></span></p>
+          <p><strong>Systemzeit:</strong> <span id="info-systemzeit"></span></p>
+          <p><strong>Gerätename:</strong> <span id="info-device-name"></span></p>
+          <p><strong>UUID:</strong> <span id="info-device-uuid"></span></p>
+          <p><strong>Token:</strong> <span id="info-token"></span></p>
+          <p><strong>Status:</strong> <span id="info-status"></span></p>
+          <div style="width:100%;text-align:center;margin-top:32px;">
+            <small>
+              &copy; 2025 Lennart Joswig<br>
+              <a href="https://github.com/lennart441/agt-app" target="_blank">Lizenz &amp; GitHub</a>
+            </small>
+          </div>
         </div>
       </div>
       <button id="settings-close-btn" class="close-btn">×</button>
@@ -251,6 +267,22 @@
         .then(reg => console.log('Service Worker registered:', reg))
         .catch(err => console.error('Service Worker registration failed:', err));
     }
+
+    // Info-Panel initialisieren
+    document.addEventListener('DOMContentLoaded', function() {
+      // Rubrik-Wechsel
+      document.querySelectorAll('.settings-item').forEach(function(item) {
+        item.onclick = function() {
+          document.querySelectorAll('.settings-item').forEach(i => i.classList.remove('selected'));
+          item.classList.add('selected');
+          document.querySelectorAll('.setting-panel').forEach(p => p.style.display = 'none');
+          document.getElementById('setting-' + item.dataset.setting).style.display = 'block';
+          if (item.dataset.setting === 'info' && typeof window.updateInfoPanel === 'function') {
+            window.updateInfoPanel();
+          }
+        };
+      });
+    });
   </script>
 </body>
 </html>

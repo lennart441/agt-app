@@ -6,8 +6,8 @@
 // Alle Funktionen werden als window-Funktionen verwendet
 let memberCounter = 2;
 let selectedMission = '';
-const PRESSURE_REMINDER_SECONDS = 12 * 60; // Zeit in Sekunden bis zum Druck-Erinnerungs-Alarm
-// const PRESSURE_REMINDER_SECONDS = 20; // BETA
+// const PRESSURE_REMINDER_SECONDS = 12 * 60; // Zeit in Sekunden bis zum Druck-Erinnerungs-Alarm
+const PRESSURE_REMINDER_SECONDS = 20; // DEV 
 
 /**
  * Zeigt das Formular zum Erstellen eines neuen Trupps an oder versteckt es.
@@ -179,6 +179,10 @@ function renderTrupp(trupp) {
     if (trupp.lastMeldungZeit && trupp.lastMeldungZeit > trupp.startZeit) {
       baseTime = trupp.lastMeldungZeit;
     }
+    // Initialisiere Status-Variable für Alarm, falls nicht vorhanden
+    if (typeof trupp.pressureReminderTriggered === 'undefined') {
+      trupp.pressureReminderTriggered = false;
+    }
     function updateTimer() {
       const now = Date.now();
       const diff = Math.floor((now - baseTime) / 1000);
@@ -192,9 +196,12 @@ function renderTrupp(trupp) {
         card.classList.add('warnphase');
       }
       // Druck-Erinnerungs-Overlay nur einmal nach Ablauf anzeigen
-      if (diff >= PRESSURE_REMINDER_SECONDS && !trupp.pressureReminderShown) {
+      if (diff >= PRESSURE_REMINDER_SECONDS && !trupp.pressureReminderTriggered) {
         showPressureReminderOverlay(trupp.id);
-        trupp.pressureReminderShown = true;
+        trupp.pressureReminderTriggered = true;
+      } else if (diff < PRESSURE_REMINDER_SECONDS) {
+        // Reset, falls Timer wieder unter die Grenze fällt
+        trupp.pressureReminderTriggered = false;
       }
     }
     updateTimer();
@@ -205,7 +212,7 @@ function renderTrupp(trupp) {
     if (timerDiv._interval) clearInterval(timerDiv._interval);
     card.classList.remove('warnphase', 'alarmphase');
     // Reset pressure reminder state when timer is reset
-    trupp.pressureReminderShown = false;
+    trupp.pressureReminderTriggered = false;
   }
 
   // Separator

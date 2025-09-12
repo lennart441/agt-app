@@ -244,28 +244,3 @@ window.openTakeoverSettingsShortcut = function() {
     }
   }
 };
-
-// Druck-Erinnerungs-Check: Prüft alle aktiven Trupps regelmäßig
-function checkPressureReminder() {
-  const trupps = window.getAllTrupps();
-  const now = Date.now();
-  trupps.forEach(trupp => {
-    if (!trupp.inaktiv && trupp.startZeit && trupp.lastMeldungZeit) {
-      const last = trupp.lastMeldungZeit || trupp.startZeit;
-      const diff = now - last;
-      // 12 Minuten = 720000 ms
-      if (diff >= 12 * 60 * 1000) {
-        // Zeige Overlay nur, wenn nicht bereits angezeigt
-        if (!trupp._pressureReminderShown) {
-          if (typeof showPressureReminderOverlay === 'function') {
-            showPressureReminderOverlay(trupp.id);
-          }
-          trupp._pressureReminderShown = true;
-        }
-      } else {
-        trupp._pressureReminderShown = false;
-      }
-    }
-  });
-}
-setInterval(checkPressureReminder, 10000); // Alle 10 Sekunden prüfen

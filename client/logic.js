@@ -3,6 +3,8 @@
 // Steuert das Datenmodell, die Speicherung, die API-Kommunikation und die Kernfunktionen für Trupps
 // Wird von ui.js und overlays.js für alle datenbezogenen Operationen genutzt
 
+const APP_VERSION = "2.1.0"; // <--- Version hier pflegen
+
 // Druckwerte von 270 bis 320 in 5er-Schritten für die Auswahl
 const druckWerte = Array.from({ length: 11 }, (_, i) => 270 + i * 5); // 270 bis 320 in 5er-Schritten
 
@@ -172,6 +174,20 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (typeof renderAllTrupps === 'function') renderAllTrupps();
   
 
+  // Initialisiere Rubrik-Wechsel für Einstellungen (Info-Panel)
+  const settingsItems = document.querySelectorAll('.settings-item');
+  settingsItems.forEach(function(item) {
+    item.onclick = function() {
+      settingsItems.forEach(i => i.classList.remove('selected'));
+      item.classList.add('selected');
+      document.querySelectorAll('.setting-panel').forEach(p => p.style.display = 'none');
+      document.getElementById('setting-' + item.dataset.setting).style.display = 'block';
+      if (item.dataset.setting === 'info' && typeof window.updateInfoPanel === 'function') {
+        window.updateInfoPanel();
+      }
+    };
+  });
+
 });
 
 /**
@@ -296,5 +312,29 @@ window.validateMemberData = function(name, druck) {
     return false;
   }
   return true;
+};
+
+/**
+ * Aktualisiert das Info-Panel mit aktuellen Werten
+ */
+window.updateInfoPanel = function() {
+  const versionEl = document.getElementById('info-version');
+  if (versionEl) versionEl.textContent = APP_VERSION;
+  function updateTime() {
+    const timeEl = document.getElementById('info-systemzeit');
+    if (timeEl) timeEl.textContent = new Date().toLocaleString();
+  }
+  updateTime();
+  if (!window._infoTimeInterval) {
+    window._infoTimeInterval = setInterval(updateTime, 1000);
+  }
+  const nameEl = document.getElementById('info-device-name');
+  if (nameEl) nameEl.textContent = DEVICE_NAME || '-';
+  const uuidEl = document.getElementById('info-device-uuid');
+  if (uuidEl) uuidEl.textContent = DEVICE_UUID || '-';
+  const tokenEl = document.getElementById('info-token');
+  if (tokenEl) tokenEl.textContent = OPERATION_TOKEN || '-';
+  const statusEl = document.getElementById('info-status');
+  if (statusEl) statusEl.textContent = isOfflineMode() ? 'Offline' : 'Online';
 };
 

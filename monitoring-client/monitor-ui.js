@@ -69,13 +69,21 @@ function updateOrCreateTruppCard(uuid, trupp) {
 function updateTruppTimer(uuid, trupp) {
   const cardId = getTruppCardId(uuid, trupp);
   const timerDiv = document.getElementById(`timer-${cardId}`);
-  if (!timerDiv) return;
+  const card = document.getElementById(cardId);
+  if (!timerDiv || !card) return;
   const zeitBasis = trupp.lastMeldungZeit || trupp.startZeit;
+  // Klassen immer entfernen, dann ggf. neu setzen
+  card.classList.remove('warnphase', 'alarmphase');
   if (!trupp.inaktiv && zeitBasis) {
     const vergangen = Math.floor((Date.now() - zeitBasis) / 1000);
     const min = Math.floor(vergangen / 60).toString().padStart(2, '0');
     const sec = (vergangen % 60).toString().padStart(2, '0');
     timerDiv.textContent = `Zeit seit letzter Meldung: ${min}:${sec}`;
+    if (vergangen > 600) {
+      card.classList.add('alarmphase');
+    } else if (vergangen > 540) {
+      card.classList.add('warnphase');
+    }
   } else {
     timerDiv.textContent = 'Trupp hat nicht angelegt';
   }
@@ -231,6 +239,8 @@ function renderTruppCard(uuid, trupp) {
     card.appendChild(warnung);
   }
 
+  // Timer-Phasen immer korrekt setzen/entfernen
+  card.classList.remove('warnphase', 'alarmphase');
   if (!trupp.inaktiv && trupp.startZeit) {
     const vergangen = Math.floor((Date.now() - trupp.startZeit) / 1000);
     if (vergangen > 600) {
