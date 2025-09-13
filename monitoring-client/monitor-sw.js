@@ -1,53 +1,59 @@
-const CACHE_NAME = 'agt-monitor-cache-v1';
+const CACHE_NAME = 'agt-monitor-v2-cache';
 const ASSETS_TO_CACHE = [
-  '/v1/monitoring-client/monitoring.html',
-  '/v1/monitoring-client/mon-base.css',
-  '/v1/monitoring-client/mon-trupp.css',
-  '/v1/monitoring-client/monitor-ui.js',
-  '/v1/monitoring-client/monitor.js',
+  '/v2/monitoring-client/monitoring.html',
+  '/v2/monitoring-client/mon-base.css',
+  '/v2/monitoring-client/mon-trupp.css',
+  '/v2/monitoring-client/monitor-ui.js',
+  '/v2/monitoring-client/monitor.js',
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
-        console.warn('Cache addAll failed:', err);
-        // Versuche, Assets einzeln zu cachen
-        return Promise.all(
-          ASSETS_TO_CACHE.map(asset =>
-            cache.add(asset).catch(e => {
-              console.warn('Asset konnte nicht gecacht werden:', asset, e);
-            })
-          )
-        );
-      });
-    })
+    caches.open(CACHE_NAME).then(cache =>
+      cache.addAll(ASSETS_TO_CACHE)
+    )
   );
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
+    caches.keys().then(keys =>
+      Promise.all(
         keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      );
-    })
+      )
+    )
   );
+  // Claim clients so updates take effect immediately
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
-  const url = event.request.url;
-  // Nicht cachen: Sync-API
-  if (url.includes('/v1/sync-api/')) {
+  const url = new URL(event.request.url);
+  // Nur statische Assets unter /v2/monitoring-client cachen, keine API-Calls
+  if (
+    url.pathname.startsWith('/v2/sync-api/') ||
+    url.pathname.startsWith('/v2/client/') ||
+    url.pathname.startsWith('/v2/report-server/')
+  ) {
+    return; // Niemals cachen
+  }
+  // Nur für Monitoring-Client
+  if (!url.pathname.startsWith('/v2/monitoring-client/')) {
     return;
   }
+  // HTML-Fallback für Navigationsanfragen
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      caches.match('/v2/monitoring-client/monitoring.html').then(response =>
+        response || fetch(event.request)
+      )
+    );
+    return;
+  }
+  // Sonstige Assets
   event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/monitoring-client/monitoring.html');
-        }
-      });
-    })
+    caches.match(event.request).then(response =>
+      response || fetch(event.request)
+    )
   );
 });

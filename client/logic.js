@@ -17,12 +17,12 @@ let agtlerNamen = [];
 let auftragVorschlaege = [];
 
 // URL für die Synchronisation mit dem Server
-//const SYNC_API_URL = 'https://agt.ff-stocksee.de/v1/sync-api/trupps';
-const SYNC_API_URL = 'http://localhost:3001/v1/sync-api/trupps';
+const SYNC_API_URL = 'https://agt.ff-stocksee.de/v2/sync-api/trupps';
+//const SYNC_API_URL = 'http://localhost:3001/v1/sync-api/trupps';
 
 // Token für die Operation, wird aus der URL gelesen
-//let OPERATION_TOKEN = getTokenFromUrl();
-let OPERATION_TOKEN = "abc123def456ghi7";
+let OPERATION_TOKEN = getTokenFromUrl();
+//let OPERATION_TOKEN = "abc123def456ghi7";
 
 // Fester Gerätename (temporär)
 let DEVICE_NAME = localStorage.getItem('deviceName') || null;

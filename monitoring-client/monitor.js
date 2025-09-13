@@ -1,5 +1,5 @@
 // Hilfsfunktionen, Overlay- und Settings-Logik
-const SYNC_API_URL = 'http://localhost:3001/v1/sync-api/trupps';
+const SYNC_API_URL = 'http://localhost:3001/v2/sync-api/trupps';
 let OPERATION_TOKEN = "abc123def456ghi7";
 let lastSyncTimestamp = null;
 let selectedUUID = null;
