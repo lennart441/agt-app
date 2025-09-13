@@ -112,10 +112,26 @@ function cleanupOldData() {
   }
 }
 
+const SERVER_VERSION = "2.1.0"; // Aktuelle Server-Version
+
 // Serverstart erst nach erfolgreichem Laden der Tokens
 loadTokens().then(() => {
   app.listen(port, () => {
+    console.log(`\n[AGT-Sync-Server v${SERVER_VERSION}]`);
     console.log(`Server running at http://localhost:${port}`);
+    console.log('--- Endpoints ---');
+    console.log('POST   /v2/sync-api/trupps');
+    console.log('GET    /v2/sync-api/trupps');
+    console.log('GET    /v2/sync-api/uuids');
+    console.log('POST   /v2/sync-api/takeover-request');
+    console.log('GET    /v2/sync-api/takeover-request');
+    console.log('POST   /v2/sync-api/takeover-response');
+    console.log('GET    /v2/sync-api/takeover-response');
+    console.log('POST   /v2/sync-api/takeover-checksum');
+    console.log('GET    /v2/sync-api/takeover-checksum');
+    console.log('POST   /v2/sync-api/takeover-confirm');
+    console.log('GET    /v2/sync-api/takeover-confirm');
+    console.log('-----------------\n');
   });
   // Starte Cleanup-Intervall alle 10 Minuten
   setInterval(cleanupOldData, 10 * 60 * 1000); // 10 Minuten
@@ -123,8 +139,10 @@ loadTokens().then(() => {
   console.error('Failed to load tokens, server not started:', error);
 });
 
+// --- ALLE API-Routen hier ---
+
 // POST-Endpoint: Empfängt und speichert Truppdaten
-app.post('/v1/sync-api/trupps', validateToken, (req, res, next) => {
+app.post('/v2/sync-api/trupps', validateToken, (req, res, next) => {
   try {
     const { trupps, timestamp, deviceUUID, deviceName, newUUID } = req.body;
     // Validierung der Eingabedaten
@@ -136,13 +154,13 @@ app.post('/v1/sync-api/trupps', validateToken, (req, res, next) => {
     console.log(`Received data for token ${req.operationToken}, UUID ${deviceUUID}, Device ${deviceName} at ${new Date(timestamp).toISOString()}${newUUID ? `, newUUID: ${newUUID}` : ''}`);
     res.json({ status: 'success', timestamp });
   } catch (error) {
-    console.error(`Error in POST /v1/sync-api/trupps for token ${req.operationToken}:`, error);
+    console.error(`Error in POST /v2/sync-api/trupps for token ${req.operationToken}:`, error);
     next(error);
   }
 });
 
 // GET-Endpoint: Gibt Truppdaten für Token zurück (alle UUIDs oder spezifische UUID)
-app.get('/v1/sync-api/trupps', validateToken, (req, res, next) => {
+app.get('/v2/sync-api/trupps', validateToken, (req, res, next) => {
   try {
     const { uuid } = req.query;
     const data = loadTruppData(req.operationToken, uuid);
@@ -152,19 +170,19 @@ app.get('/v1/sync-api/trupps', validateToken, (req, res, next) => {
     console.log(`Sent data for token ${req.operationToken}${uuid ? `, UUID ${uuid}` : ' (all UUIDs)'}: ${JSON.stringify(data)}`);
     res.json(data);
   } catch (error) {
-    console.error(`Error in GET /v1/sync-api/trupps for token ${req.operationToken}:`, error);
+    console.error(`Error in GET /v2/sync-api/trupps for token ${req.operationToken}:`, error);
     next(error);
   }
 });
 
 // GET-Endpoint: Gibt alle aktiven UUIDs für einen Token zurück
-app.get('/v1/sync-api/uuids', validateToken, (req, res, next) => {
+app.get('/v2/sync-api/uuids', validateToken, (req, res, next) => {
   try {
     const uuids = loadActiveUUIDs(req.operationToken);
     console.log(`Sent active UUIDs for token ${req.operationToken}: ${JSON.stringify(uuids)}`);
     res.json({ uuids });
   } catch (error) {
-    console.error(`Error in GET /v1/sync-api/uuids for token ${req.operationToken}:`, error);
+    console.error(`Error in GET /v2/sync-api/uuids for token ${req.operationToken}:`, error);
     next(error);
   }
 });
@@ -177,7 +195,7 @@ const TAKEOVER_REQUEST_TTL = 60000; // 60 Sekunden
 const TAKEOVER_RESPONSE_TTL = 60000; // 60 Sekunden
 
 // POST: Übernahmeantrag stellen
-app.post('/v1/sync-api/takeover-request', validateToken, (req, res, next) => {
+app.post('/v2/sync-api/takeover-request', validateToken, (req, res, next) => {
   try {
     const { targetUUID, requesterUUID, requesterName, timestamp } = req.body;
     if (!targetUUID || !requesterUUID || !requesterName || typeof timestamp !== 'number') {
@@ -196,13 +214,13 @@ app.post('/v1/sync-api/takeover-request', validateToken, (req, res, next) => {
     console.log(`[DEBUG] Takeover request stored: token=${req.operationToken}, targetUUID=${targetUUID}, requesterUUID=${requesterUUID}, requesterName=${requesterName}, timestamp=${timestamp}`);
     res.json({ status: 'success' });
   } catch (error) {
-    console.error('Error in POST /v1/sync-api/takeover-request:', error);
+    console.error('Error in POST /v2/sync-api/takeover-request:', error);
     next(error);
   }
 });
 
 // GET: Übernahmeantrag abfragen
-app.get('/v1/sync-api/takeover-request', validateToken, (req, res, next) => {
+app.get('/v2/sync-api/takeover-request', validateToken, (req, res, next) => {
   try {
     const { uuid } = req.query;
     if (!uuid) return res.status(400).json({ error: 'Missing uuid' });
@@ -216,13 +234,13 @@ app.get('/v1/sync-api/takeover-request', validateToken, (req, res, next) => {
     }
     res.json({});
   } catch (error) {
-    console.error('Error in GET /v1/sync-api/takeover-request:', error);
+    console.error('Error in GET /v2/sync-api/takeover-request:', error);
     next(error);
   }
 });
 
 // POST: Antwort auf Übernahmeantrag
-app.post('/v1/sync-api/takeover-response', validateToken, (req, res, next) => {
+app.post('/v2/sync-api/takeover-response', validateToken, (req, res, next) => {
   try {
     const { requesterUUID, responderUUID, status, timestamp } = req.body;
     if (!requesterUUID || !responderUUID || !status || typeof timestamp !== 'number') {
@@ -239,13 +257,13 @@ app.post('/v1/sync-api/takeover-response', validateToken, (req, res, next) => {
     console.log(`[DEBUG] Takeover response stored: token=${req.operationToken}, requesterUUID=${requesterUUID}, responderUUID=${responderUUID}, status=${status}, timestamp=${timestamp}`);
     res.json({ status: 'success' });
   } catch (error) {
-    console.error('Error in POST /v1/sync-api/takeover-response:', error);
+    console.error('Error in POST /v2/sync-api/takeover-response:', error);
     next(error);
   }
 });
 
 // GET: Antwort auf Übernahmeantrag abfragen
-app.get('/v1/sync-api/takeover-response', validateToken, (req, res, next) => {
+app.get('/v2/sync-api/takeover-response', validateToken, (req, res, next) => {
   try {
     const { requesterUUID } = req.query;
     if (!requesterUUID) return res.status(400).json({ error: 'Missing requesterUUID' });
@@ -258,7 +276,7 @@ app.get('/v1/sync-api/takeover-response', validateToken, (req, res, next) => {
     }
     res.json({});
   } catch (error) {
-    console.error('Error in GET /v1/sync-api/takeover-response:', error);
+    console.error('Error in GET /v2/sync-api/takeover-response:', error);
     next(error);
   }
 });
@@ -270,7 +288,7 @@ const TAKEOVER_CHECKSUM_TTL = 60000;
 const TAKEOVER_CONFIRM_TTL = 60000;
 
 // POST: Neuer Client sendet Prüfsumme
-app.post('/v1/sync-api/takeover-checksum', validateToken, (req, res, next) => {
+app.post('/v2/sync-api/takeover-checksum', validateToken, (req, res, next) => {
   try {
     const { oldUUID, newUUID, checksum, timestamp } = req.body;
     if (!oldUUID || !newUUID || typeof checksum === 'undefined' || typeof timestamp !== 'number') {
@@ -292,7 +310,7 @@ app.post('/v1/sync-api/takeover-checksum', validateToken, (req, res, next) => {
 });
 
 // GET: Alter Client fragt Prüfsumme ab
-app.get('/v1/sync-api/takeover-checksum', validateToken, (req, res, next) => {
+app.get('/v2/sync-api/takeover-checksum', validateToken, (req, res, next) => {
   try {
     const { oldUUID } = req.query;
     if (!oldUUID) return res.status(400).json({ error: 'Missing oldUUID' });
@@ -310,7 +328,7 @@ app.get('/v1/sync-api/takeover-checksum', validateToken, (req, res, next) => {
 });
 
 // POST: Bestätigung der Datenübernahme
-app.post('/v1/sync-api/takeover-confirm', validateToken, (req, res, next) => {
+app.post('/v2/sync-api/takeover-confirm', validateToken, (req, res, next) => {
   try {
     const { newUUID, timestamp } = req.body;
     if (!newUUID || typeof timestamp !== 'number') {
@@ -327,13 +345,13 @@ app.post('/v1/sync-api/takeover-confirm', validateToken, (req, res, next) => {
     console.log(`[DEBUG] Takeover confirm stored: token=${req.operationToken}, newUUID=${newUUID}, timestamp=${timestamp}`);
     res.json({ status: 'success' });
   } catch (error) {
-    console.error('Error in POST /v1/sync-api/takeover-confirm:', error);
+    console.error('Error in POST /v2/sync-api/takeover-confirm:', error);
     next(error);
   }
 });
 
 // GET: Abfrage der Bestätigung
-app.get('/v1/sync-api/takeover-confirm', validateToken, (req, res, next) => {
+app.get('/v2/sync-api/takeover-confirm', validateToken, (req, res, next) => {
   try {
     const { newUUID } = req.query;
     if (!newUUID) return res.status(400).json({ error: 'Missing newUUID' });
@@ -366,13 +384,21 @@ app.get('/v1/sync-api/takeover-confirm', validateToken, (req, res, next) => {
     }
     res.json({});
   } catch (error) {
-    console.error('Error in GET /v1/sync-api/takeover-confirm:', error);
+    console.error('Error in GET /v2/sync-api/takeover-confirm:', error);
     next(error);
   }
 });
 
+// Middleware für fehlerhafte Endpunkte (404, 405 etc.)
+// Diese Zeile muss NACH allen API-Routen stehen!
+app.use((req, res, next) => {
+  console.warn(`[WARN] Unbekannter Endpoint: ${req.method} ${req.originalUrl} von ${req.ip}`);
+  res.status(404).json({ error: `Unknown endpoint: ${req.method} ${req.originalUrl}` });
+});
+
 // Fehlerbehandlung-Middleware
 app.use((err, req, res, next) => {
+  console.error(`[ERROR] Fehlerhafte Verbindung: ${req.method} ${req.originalUrl} von ${req.ip}`);
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });

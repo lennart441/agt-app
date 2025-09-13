@@ -25,7 +25,8 @@ function debugLog(clientType, step, message) {
 async function loadAvailableUUIDs(token) {
     if (isOfflineMode()) return [];
     try {
-        const url = `${window.SYNC_API_URL.replace('/trupps', '/uuids')}?token=${encodeURIComponent(token)}`;
+        // Korrigiere die URL
+        const url = window.SYNC_API_URL.replace('/trupps', '/uuids') + `?token=${encodeURIComponent(token)}`;
         const res = await fetch(url);
         if (!res.ok) {
             debugLog('Neuer Client', 2, `UUIDs Response Error: ${res.status}, ${await res.text()}`);
@@ -69,7 +70,8 @@ async function showTakeoverUUIDList() {
     // Lade Daten für jede UUID
     const uuidDataPromises = filtered.map(async (uuid) => {
         try {
-            const url = `${window.SYNC_API_URL}?token=${encodeURIComponent(window.OPERATION_TOKEN)}&uuid=${encodeURIComponent(uuid)}`;
+            // Korrigiere die URL
+            const url = window.SYNC_API_URL + `?token=${encodeURIComponent(window.OPERATION_TOKEN)}&uuid=${encodeURIComponent(uuid)}`;
             const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
@@ -171,7 +173,8 @@ window.sendTakeoverRequest = async function(targetUUID) {
         return;
     }
     try {
-        const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-request')}`;
+        // Korrigiere die URL
+        const url = window.SYNC_API_URL.replace('/trupps', '/takeover-request') + `?token=${encodeURIComponent(window.OPERATION_TOKEN)}`;
         const res = await fetch(url, {
             method: 'POST',
             headers: {
@@ -211,7 +214,8 @@ window.pollTakeoverResponse = function(targetUUID) {
     if (isOfflineMode()) return;
     let pollInterval = setInterval(async () => {
         try {
-            const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-response')}?token=${window.OPERATION_TOKEN}&requesterUUID=${window.DEVICE_UUID}`;
+            // Korrigiere die URL
+            const url = window.SYNC_API_URL.replace('/trupps', '/takeover-response') + `?token=${window.OPERATION_TOKEN}&requesterUUID=${window.DEVICE_UUID}`;
             const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
@@ -248,7 +252,8 @@ function _startTakeoverPolling(deviceUUID, token) {
     if (takeoverPollingInterval) return;
     takeoverPollingInterval = setInterval(async () => {
         try {
-            const takeoverUrl = `${window.SYNC_API_URL.replace('/trupps', '/takeover-request')}?token=${token}&uuid=${deviceUUID}`;
+            // Korrigiere die URL
+            const takeoverUrl = window.SYNC_API_URL.replace('/trupps', '/takeover-request') + `?token=${token}&uuid=${deviceUUID}`;
             const res = await fetch(takeoverUrl);
             if (res.ok) {
                 const data = await res.json();
@@ -266,7 +271,7 @@ function _startTakeoverPolling(deviceUUID, token) {
                 }
             }
             // Poll für Truppdaten und futureUUID
-            const res2 = await fetch(`${window.SYNC_API_URL}?token=${token}&uuid=${deviceUUID}`);
+            const res2 = await fetch(window.SYNC_API_URL + `?token=${token}&uuid=${deviceUUID}`);
             if (!res2.ok) return;
             const data2 = await res2.json();
             if (data2 && data2.futureUUID && data2.futureUUID !== deviceUUID) {
@@ -278,7 +283,7 @@ function _startTakeoverPolling(deviceUUID, token) {
                 }
             }
             // Prüfsumme abrufen und validieren (für Datenvalidierung)
-            const checksumUrl = `${window.SYNC_API_URL.replace('/trupps', '/takeover-checksum')}?token=${token}&oldUUID=${deviceUUID}`;
+            const checksumUrl = window.SYNC_API_URL.replace('/trupps', '/takeover-checksum') + `?token=${token}&oldUUID=${deviceUUID}`;
             const checksumRes = await fetch(checksumUrl);
             if (checksumRes.ok) {
                 const checksumData = await checksumRes.json();
@@ -325,7 +330,8 @@ function stopTakeoverPolling() {
  */
 window.sendTakeoverResponse = async function(requesterUUID, status) {
     try {
-        const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-response')}`;
+        // Korrigiere die URL
+        const url = window.SYNC_API_URL.replace('/trupps', '/takeover-response') + `?token=${window.OPERATION_TOKEN}`;
         const res = await fetch(url, {
             method: 'POST',
             headers: {
@@ -360,7 +366,8 @@ window.pollTakeoverConfirm = function(oldUUID) {
     debugLog('Neuer Client', 4, `Starte pollTakeoverConfirm mit oldUUID: ${oldUUID}`);
     let pollInterval = setInterval(async () => {
         try {
-            const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-confirm')}?token=${window.OPERATION_TOKEN}&newUUID=${window.DEVICE_UUID}`;
+            // Korrigiere die URL
+            const url = window.SYNC_API_URL.replace('/trupps', '/takeover-confirm') + `?token=${window.OPERATION_TOKEN}&newUUID=${window.DEVICE_UUID}`;
             debugLog('Neuer Client', 4, `Polling takeover-confirm: ${url}`);
             const res = await fetch(url);
             if (res.ok) {
@@ -394,7 +401,8 @@ window.fetchAndStoreTakeoverData = async function(oldUUID) {
     if (isOfflineMode()) return;
     debugLog('Neuer Client', 5, `fetchAndStoreTakeoverData aufgerufen mit oldUUID: ${oldUUID}`);
     try {
-        const url = `${window.SYNC_API_URL}?token=${window.OPERATION_TOKEN}&uuid=${oldUUID}`;
+        // Korrigiere die URL
+        const url = window.SYNC_API_URL + `?token=${window.OPERATION_TOKEN}&uuid=${oldUUID}`;
         debugLog('Neuer Client', 5, `Abrufen der Truppdaten von: ${url}`);
         const res = await fetch(url);
         if (!res.ok) {
@@ -435,7 +443,8 @@ window.fetchAndStoreTakeoverData = async function(oldUUID) {
 async function sendChecksumToServer(oldUUID, checksum) {
     if (isOfflineMode()) return;
     try {
-        const url = `${window.SYNC_API_URL.replace('/trupps', '/takeover-checksum')}`;
+        // Korrigiere die URL
+        const url = window.SYNC_API_URL.replace('/trupps', '/takeover-checksum') + `?token=${window.OPERATION_TOKEN}`;
         const res = await fetch(url, {
             method: 'POST',
             headers: {
@@ -469,7 +478,9 @@ window.syncTruppsToServerWithNewUUID = async function(newUUID) {
         const truppsToSync = window.getAllTrupps();
         const deviceName = window.DEVICE_NAME || 'AGT-Device'; // Fallback, falls undefined
         debugLog('Alter Client', 3, `Syncing trupps with newUUID: ${newUUID}, deviceName: ${deviceName}`);
-        const response = await fetch(window.SYNC_API_URL, {
+        // Korrigiere die URL
+        const url = window.SYNC_API_URL + `?token=${window.OPERATION_TOKEN}`;
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

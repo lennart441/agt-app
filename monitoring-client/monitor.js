@@ -1,6 +1,7 @@
 // Hilfsfunktionen, Overlay- und Settings-Logik
-const SYNC_API_URL = 'http://localhost:3001/v2/sync-api/trupps';
-let OPERATION_TOKEN = "abc123def456ghi7";
+const SYNC_API_URL = 'https://agt.ff-stocksee.de/v2/sync-api/trupps';
+// let OPERATION_TOKEN = "abc123def456ghi7";
+let OPERATION_TOKEN = getTokenFromUrl();
 let lastSyncTimestamp = null;
 let selectedUUID = null;
 let refreshInterval = null;

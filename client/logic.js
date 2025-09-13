@@ -18,7 +18,7 @@ let auftragVorschlaege = [];
 
 // URL für die Synchronisation mit dem Server
 const SYNC_API_URL = 'https://agt.ff-stocksee.de/v2/sync-api/trupps';
-//const SYNC_API_URL = 'http://localhost:3001/v1/sync-api/trupps';
+//const SYNC_API_URL = 'http://10.0.4.22:3011/v2/sync-api/trupps';
 
 // Token für die Operation, wird aus der URL gelesen
 let OPERATION_TOKEN = getTokenFromUrl();
@@ -140,7 +140,9 @@ async function syncTruppsToServer() {
     // Lade Trupps aus localStorage über die Helper-Funktion
     const truppsToSync = window.getAllTrupps();
 
-    const response = await fetch(SYNC_API_URL, {
+    // Korrigiere die URL: Kein doppeltes /trupps
+    const url = SYNC_API_URL + `?token=${encodeURIComponent(OPERATION_TOKEN)}`;
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

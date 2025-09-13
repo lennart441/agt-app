@@ -16,15 +16,22 @@ const ASSETS_TO_CACHE = [
   '/v2/client/agtler.json',
   '/v2/client/auftrag.json',
   '/v2/client/truppnamen.json',
-  '/v2/client/lib/jspdf.umd.min.js',
-  // ggf. weitere statische Assets hier ergänzen
+  '/v2/client/lib/jspdf.umd.min.js'
+  // ...weitere statische Assets nach Bedarf...
 ];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS_TO_CACHE);
+    caches.open(CACHE_NAME).then(async cache => {
+      for (const asset of ASSETS_TO_CACHE) {
+        try {
+          await cache.add(asset);
+          console.log('Gecacht:', asset);
+        } catch (err) {
+          console.error('Fehler beim Cachen:', asset, err);
+        }
+      }
     })
   );
 });
@@ -59,7 +66,7 @@ self.addEventListener('fetch', event => {
           // Nur GET-Anfragen und nur statische Assets cachen
           if (
             event.request.method === 'GET' &&
-            ASSETS_TO_CACHE.some(asset => event.request.url.endsWith(asset.replace('/v2/client/', '')))
+            ASSETS_TO_CACHE.includes(new URL(event.request.url).pathname)
           ) {
             caches.open(CACHE_NAME).then(cache => {
               cache.put(event.request, networkResponse.clone());
@@ -75,4 +82,12 @@ self.addEventListener('fetch', event => {
         });
     })
   );
+});
+
+// Debug: Service Worker lifecycle events
+self.addEventListener('message', event => {
+  console.log('Service Worker: Nachricht empfangen:', event.data);
+});
+self.addEventListener('error', event => {
+  console.error('Service Worker: Fehler:', event);
 });
